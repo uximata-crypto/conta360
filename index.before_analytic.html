@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AloeWorld Consulting · Conta360 — Balancete, Balanço e DR</title>
+<style>
+:root{
+  --ink:#12245e; --muted:#66738f; --paper:#ffffff; --canvas:#f4f5f8;
+  --nav:#0a1f72; --nav2:#081858; --accent:#0a1f72; --accent2:#edf3fa;
+  --line:#c8d5e7; --good:#4b8d21; --bad:#b42318; --warn:#b54708; --shadow:0 14px 35px rgba(10,31,114,.10);
+}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--canvas);color:var(--ink)}
+button,input,select,textarea{font:inherit} button{cursor:pointer}
+.app-shell{min-height:100vh;display:grid;grid-template-columns:260px 1fr}
+.sidebar{background:linear-gradient(180deg,var(--nav),var(--nav2));padding:22px 14px;color:white;position:sticky;top:0;height:100vh;border-right:4px solid #d7e1ef}
+.brand{display:flex;flex-direction:column;align-items:stretch;gap:14px;padding:2px 8px 22px;border-bottom:1px solid rgba(255,255,255,.14);margin-bottom:15px}
+.brand-logo{display:block;width:100%;max-width:222px;height:auto;margin:0 auto;border-radius:30px;box-shadow:0 10px 22px rgba(0,0,0,.10)}
+.brand-copy{padding:0 3px}.brand h1{font-size:18px;margin:0;letter-spacing:-.4px;color:#ffffff}.brand small{display:block;color:#d2ddf0;margin-top:3px;font-size:11px}
+.nav{display:grid;gap:5px}.nav button{border:1px solid transparent;border-radius:12px;background:transparent;color:#dce5f5;text-align:left;padding:11px 12px;font-weight:650;transition:.2s}.nav button:hover,.nav button.active{background:rgba(255,255,255,.10);color:#fff;border-color:rgba(255,255,255,.10)}.nav button.active{box-shadow:inset 3px 0 0 #8ebd33}
+.sidebar-foot{position:absolute;bottom:17px;left:20px;right:20px;color:#d2ddf0;font-size:11px;line-height:1.45}
+.main{min-width:0}.topbar{min-height:78px;background:rgba(255,255,255,.96);border-bottom:2px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:14px 30px;gap:16px;position:sticky;top:0;z-index:5;backdrop-filter:blur(10px)}
+.top-title h2{font-size:18px;margin:0 0 3px}.top-title p{margin:0;color:var(--muted);font-size:12px}.period-controls{display:flex;align-items:end;gap:8px;flex-wrap:wrap}.field-mini{display:grid;gap:4px;font-size:11px;color:var(--muted);font-weight:700}.field-mini input{border:1px solid var(--line);border-radius:7px;padding:8px;background:white;color:var(--ink)}
+.btn{border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:white;color:var(--ink);font-weight:750;font-size:12px}.btn:hover{border-color:#9fb3c8;background:#f8fbfd}.btn.primary{background:var(--accent);border-color:var(--accent);color:white}.btn.primary:hover{background:#081858}.btn.danger{color:var(--bad);border-color:#f5c2bd}.btn.ghost{background:transparent}
+.content{padding:26px 30px 42px;max-width:1600px;margin:0 auto}.page{display:none}.page.active{display:block}
+.page-intro{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}.page-intro h3{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.page-intro p{margin:0;color:var(--muted);font-size:14px;line-height:1.45}
+.grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.two{grid-template-columns:1.05fr .95fr}.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.card{background:var(--paper);border:1px solid #dce6f1;border-radius:16px;padding:18px;box-shadow:0 1px 1px rgba(10,31,114,.02)}.card h4{font-size:13px;margin:0 0 13px;letter-spacing:.1px}.card p.note{color:var(--muted);font-size:12px;line-height:1.5;margin:0}
+.kpi{min-height:121px;position:relative;overflow:hidden}.kpi:after{content:"";height:76px;width:76px;background:var(--accent2);border-radius:50%;position:absolute;right:-20px;top:-20px}.kpi .label{color:var(--muted);font-weight:750;font-size:12px}.kpi .value{font-size:26px;font-weight:800;letter-spacing:-1px;margin-top:13px;position:relative;z-index:1}.kpi .sub{font-size:11px;color:var(--muted);margin-top:4px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.form-grid.three-cols{grid-template-columns:repeat(3,minmax(0,1fr))}.field{display:grid;gap:5px}.field.span-2{grid-column:span 2}.field label{font-size:11px;font-weight:800;color:#53698d;text-transform:uppercase;letter-spacing:.35px}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;color:var(--ink);outline:none}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(10,31,114,.12)}.field textarea{min-height:84px;resize:vertical}
+.form-actions{display:flex;align-items:center;gap:8px;margin-top:15px;flex-wrap:wrap}.helper{font-size:11px;color:var(--muted);line-height:1.45}
+.tab-bar{display:flex;gap:7px;overflow:auto;margin:0 0 15px}.subtab{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:99px;padding:8px 12px;color:var(--muted);font-size:12px;font-weight:750}.subtab.active{background:var(--accent);border-color:var(--accent);color:#fff}.entry-panel{display:none}.entry-panel.active{display:block}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}.data-table{width:100%;border-collapse:collapse;min-width:700px}.data-table th{background:#f7fafc;color:#486581;text-transform:uppercase;letter-spacing:.35px;font-size:10px;text-align:left;padding:11px 12px;border-bottom:1px solid var(--line)}.data-table td{font-size:12px;padding:11px 12px;border-bottom:1px solid #edf2f7;vertical-align:top}.data-table tr:last-child td{border-bottom:0}.data-table .num{text-align:right;font-variant-numeric:tabular-nums}.data-table .strong{font-weight:800}.data-table .muted{color:var(--muted)}.data-table tfoot td{background:#f7fafc;font-weight:800}
+.badge{display:inline-flex;align-items:center;border-radius:99px;padding:4px 8px;font-size:10px;font-weight:800}.badge.sale{background:#dcfce7;color:#166534}.badge.expense{background:#fef3c7;color:#92400e}.badge.bank{background:#e0f2fe;color:#075985}.badge.tax{background:#f3e8ff;color:#6b21a8}.badge.manual{background:#e2e8f0;color:#334e68}
+.empty{border:1px dashed #bcccdc;border-radius:10px;padding:27px;text-align:center;color:var(--muted);font-size:13px;background:#fbfdff}.alert{border-radius:9px;padding:11px 12px;font-size:12px;line-height:1.4}.alert.info{background:#eff8ff;color:#175cd3;border:1px solid #b2ddff}.alert.warning{background:#fffaeb;color:#b54708;border:1px solid #fedf89}.alert.success{background:#ecfdf3;color:#067647;border:1px solid #abefc6}
+.report-card{background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);padding:34px;border-radius:16px}.report-header{border-bottom:2px solid var(--accent);padding-bottom:15px;margin-bottom:18px;display:flex;justify-content:space-between;gap:15px}.report-heading-lockup{display:flex;gap:15px;align-items:flex-start}.report-logo{width:184px;height:auto;display:block;border-radius:14px;flex:none}.report-header h2{font-size:20px;margin:0 0 5px}.report-header p{font-size:12px;color:var(--muted);margin:0;line-height:1.5}.report-summary{display:flex;gap:15px;justify-content:flex-end;text-align:right;font-size:11px;color:var(--muted)}.report-summary b{display:block;color:var(--ink);font-size:12px;margin-top:2px}.report-table{width:100%;border-collapse:collapse}.report-table th,.report-table td{padding:9px 8px;border-bottom:1px solid #e9eff5;font-size:12px}.report-table th{text-transform:uppercase;font-size:10px;letter-spacing:.32px;color:#53698d;text-align:left}.report-table .num{text-align:right;font-variant-numeric:tabular-nums}.report-table .section td{padding-top:17px;font-weight:850;color:var(--ink);border-bottom:1px solid #c8d5e7;background:#f8fbff}.report-table .total td{font-weight:850;background:#eff4fb;border-top:1px solid #c3d6eb}.report-table .grand-total td{font-weight:900;background:#e3ecf9;border-top:2px solid var(--accent);font-size:13px}
+.balance-columns{display:grid;grid-template-columns:1fr 1fr;gap:20px}.balance-side h5{font-size:13px;margin:0;padding:10px 11px;background:var(--accent);color:#fff;border-radius:10px 10px 0 0}.balance-side .report-table{border:1px solid var(--line)}.balance-side .report-table .total td{background:#eff4fb}.status-line{display:flex;gap:8px;align-items:center;font-size:12px;margin:13px 0}.dot{height:9px;width:9px;border-radius:50%;background:var(--good)}.dot.warn{background:var(--warn)}.dropzone{border:1.5px dashed #9fb3c8;border-radius:10px;padding:18px;background:#f9fcfe;text-align:center}.dropzone input{max-width:100%}.attachment-row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #edf2f7}.attachment-row:last-child{border-bottom:0}.attachment-name{font-weight:750;font-size:12px;display:flex;align-items:center;gap:7px}.attachment-meta{font-size:11px;color:var(--muted);margin-top:3px}.file-kind{display:inline-flex;align-items:center;justify-content:center;min-width:33px;border-radius:5px;padding:2px 5px;font-size:9px;font-weight:900;letter-spacing:.35px;background:#e2e8f0;color:#334e68}.file-kind.pdf{background:#fee4e2;color:#b42318}.file-kind.image{background:#dff7f1;color:#0f766e}.file-kind.sheet{background:#dcfce7;color:#166534}.file-kind.doc{background:#e0f2fe;color:#075985}
+.toast{position:fixed;right:24px;bottom:24px;max-width:350px;color:#fff;background:var(--accent);padding:12px 15px;border-radius:9px;box-shadow:var(--shadow);font-size:12px;z-index:40;transform:translateY(100px);opacity:0;pointer-events:none;transition:.25s}.toast.show{transform:translateY(0);opacity:1}
+.footer-note{margin-top:15px;color:var(--muted);font-size:11px;line-height:1.5}
+.compact-actions{display:flex;gap:6px;justify-content:flex-end}.icon-btn{border:1px solid var(--line);background:#fff;color:#486581;border-radius:6px;padding:4px 7px;font-size:11px;font-weight:750}.icon-btn:hover{background:#f7fafc}.icon-btn.delete{color:var(--bad);border-color:#f5c2bd}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0}.legend span{font-size:10px;color:var(--muted)}
+
+.auto-layout{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(330px,.92fr);gap:16px}.auto-result{position:sticky;top:98px;align-self:start}.auto-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}.auto-summary .metric{border:1px solid var(--line);border-radius:8px;padding:10px;background:#fbfdff}.auto-summary .metric span{display:block;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.3px}.auto-summary .metric b{display:block;margin-top:5px;font-size:13px;word-break:break-word}.confidence{display:inline-flex;align-items:center;border-radius:99px;padding:4px 8px;font-size:10px;font-weight:850;background:#e0f2fe;color:#075985}.confidence.high{background:#dcfce7;color:#166534}.confidence.low{background:#fef3c7;color:#92400e}.rule-list{display:grid;gap:8px}.rule-row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #edf2f7;padding:9px 0;font-size:12px}.rule-row:last-child{border-bottom:0}.auto-text{min-height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.45}.auto-note{margin-top:10px;font-size:11px;line-height:1.5;color:var(--muted)}
+@media(max-width:1100px){.auto-layout{grid-template-columns:1fr}.auto-result{position:static}.auto-summary{grid-template-columns:1fr}}
+
+@media(max-width:1100px){.app-shell{grid-template-columns:220px 1fr}.kpis{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.three{grid-template-columns:1fr 1fr}}
+@media(max-width:780px){.app-shell{display:block}.sidebar{position:relative;height:auto;padding:15px}.brand{padding-bottom:14px;margin-bottom:10px}.brand-logo{max-width:260px}.report-heading-lockup{display:block}.report-logo{width:160px;margin:0 0 11px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap}.sidebar-foot{display:none}.topbar{position:relative;padding:14px 16px;display:block}.period-controls{margin-top:12px}.content{padding:18px 14px}.page-intro{display:block}.page-intro .btn{margin-top:12px}.form-grid,.form-grid.three-cols{grid-template-columns:1fr}.field.span-2{grid-column:auto}.kpis{grid-template-columns:1fr 1fr}.balance-columns{grid-template-columns:1fr}.report-card{padding:18px}.report-header{display:block}.report-summary{justify-content:flex-start;text-align:left;margin-top:10px}}
+@media print{body{background:#fff}.sidebar,.topbar,.page:not(.active),.no-print{display:none!important}.app-shell{display:block}.content{padding:0;max-width:none}.report-card{border:0;box-shadow:none;padding:0}.page-intro{display:none}.report-table th,.report-table td{font-size:10px;padding:6px}.balance-columns{gap:12px}.balance-side h5{font-size:11px;padding:7px}.footer-note{font-size:9px}.report-header h2{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img class="brand-logo" src="assets/aloeworld-consulting-logo-new.png" alt="AloeWorld Consulting"><div class="brand-copy"><h1>Conta360</h1><small>Gestão contabilística interna · identidade AloeWorld</small></div></div>
+    <nav class="nav" id="nav">
+      <button class="active" data-tab="dashboard">Visão geral</button>
+      <button data-tab="entries">Lançamentos</button>
+      <button data-tab="documents">Importar e anexos</button>
+      <button data-tab="trial">Balancete</button>
+      <button data-tab="income">Demonstração de resultados</button>
+      <button data-tab="balance">Balanço</button>
+      <button data-tab="taxes">Impostos e contribuições</button>
+    </nav>
+    <div class="sidebar-foot">Os dados ficam apenas nesta sessão do navegador. Use <b>Exportar dados</b> para guardar um ficheiro JSON.</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="top-title">
+        <h2 id="topTitle">Visão geral</h2>
+        <p id="companyTop">Empresa não identificada</p>
+      </div>
+      <div class="period-controls no-print">
+        <label class="field-mini">De<input type="date" id="periodFrom"></label>
+        <label class="field-mini">Até<input type="date" id="periodTo"></label>
+        <button class="btn" id="exportJsonBtn">Exportar dados</button>
+        <label class="btn" for="importJsonFile">Importar dados</label>
+        <input type="file" id="importJsonFile" accept=".json" hidden>
+      </div>
+    </header>
+
+    <div class="content">
+      <section class="page active" id="page-dashboard">
+        <div class="page-intro">
+          <div><h3>Visão geral financeira</h3><p>Registe vendas, despesas, banco e obrigações. Os mapas são atualizados a partir dos lançamentos contabilísticos criados.</p></div>
+          <button class="btn primary no-print" id="demoBtn">Carregar exemplo</button>
+        </div>
+        <div class="grid kpis" id="kpiGrid"></div>
+        <div class="grid two">
+          <div class="card">
+            <h4>Identificação da entidade</h4>
+            <form id="companyForm">
+              <div class="form-grid">
+                <div class="field"><label>Empresa / entidade</label><input id="companyName" placeholder="Ex.: Bolhas Vibrantes — Lda."></div>
+                <div class="field"><label>NIF</label><input id="companyNif" inputmode="numeric" placeholder="9 dígitos"></div>
+                <div class="field"><label>Exercício</label><input id="companyYear" type="number" min="2000" max="2100"></div>
+                <div class="field"><label>Moeda</label><select id="companyCurrency"><option value="EUR">Euro (€)</option></select></div>
+              </div>
+              <div class="form-actions"><button class="btn primary" type="submit">Atualizar identificação</button><span class="helper">A identificação é usada nos relatórios e não é guardada automaticamente.</span></div>
+            </form>
+          </div>
+          <div class="card">
+            <h4>Como funciona</h4>
+            <div class="alert info"><b>1.</b> Anexe documentos e deixe a app propor data, entidade, valores e rubrica.<br><b>2.</b> Confirme o lançamento automático ou registe manualmente/importando CSV.<br><b>3.</b> Consulte o balancete, DR e balanço por período.<br><b>4.</b> Exporte o ficheiro JSON e imprima os mapas em PDF.</div>
+            <p class="note" style="margin-top:12px">A aplicação é uma ferramenta de preparação e controlo interno. A validação final, apuramentos fiscais e entrega de declarações devem ser verificados pelo Contabilista Certificado.</p>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h4>Últimos lançamentos</h4>
+          <div id="dashboardEntries"></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-entries">
+        <div class="page-intro"><div><h3>Lançamentos</h3><p>Crie movimentos estruturados. Cada operação gera débitos e créditos equilibrados.</p></div><button class="btn danger no-print" id="clearEntriesBtn">Limpar todos os lançamentos</button></div>
+        <div class="tab-bar no-print" id="entryTabs">
+          <button class="subtab active" data-entry-tab="auto">Automático por documento</button>
+          <button class="subtab" data-entry-tab="sale">Venda / serviço</button>
+          <button class="subtab" data-entry-tab="expense">Despesa</button>
+          <button class="subtab" data-entry-tab="bank">Banco / caixa</button>
+          <button class="subtab" data-entry-tab="manual">Lançamento manual</button>
+        </div>
+
+
+        <div class="entry-panel active" id="entry-auto">
+          <div class="page-intro" style="margin-top:2px"><div><h3 style="font-size:20px">Lançamento automático por documento</h3><p>Anexe uma fatura, recibo, extrato ou guia. A aplicação lê os dados disponíveis, identifica data, entidade, NIF, valores e propõe a rubrica e o lançamento contabilístico.</p></div></div>
+          <div class="auto-layout">
+            <div class="card">
+              <h4>1. Documento e informação disponível</h4>
+              <div class="form-grid">
+                <div class="field"><label>Tipo de documento</label><select id="autoType"><option value="auto">Detetar automaticamente</option><option value="expense">Despesa / compra</option><option value="sale">Venda / prestação de serviço</option><option value="bank">Movimento bancário</option><option value="tax">Imposto / contribuição</option></select></div>
+                <div class="field"><label>Documento</label><input id="autoFile" type="file" accept="application/pdf,.pdf,image/*,.csv,.txt,.doc,.docx"></div>
+                <div class="field span-2"><label>Texto do documento (opcional ou para conferência)</label><textarea id="autoText" class="auto-text" placeholder="O texto de PDFs digitais é preenchido automaticamente ao analisar. Para documentos digitalizados, cole aqui os elementos principais ou preencha os campos propostos depois da análise."></textarea></div>
+              </div>
+              <div class="form-actions"><button class="btn primary" id="autoAnalyzeBtn" type="button">Analisar e classificar</button><span class="helper">PDFs digitais: leitura automática do texto. Imagens e PDFs digitalizados exigem confirmação manual, pois esta versão não executa OCR.</span></div>
+              <div class="auto-note">A classificação é uma proposta baseada no conteúdo do documento, NIF/entidade, palavras-chave e no histórico já confirmado. Revise sempre antes de criar o lançamento.</div>
+              <div class="card" style="margin:16px 0 0;padding:14px;background:#fbfdff"><h4>Histórico de classificações aprendidas</h4><div id="autoRulesList" class="rule-list"></div></div>
+            </div>
+            <div class="card auto-result"><h4>2. Proposta para confirmação</h4>
+              <form id="autoForm">
+                <div id="autoStatus" class="empty">Anexe um documento ou introduza texto e escolha <b>Analisar e classificar</b>.</div>
+                <div id="autoFields" style="display:none">
+                  <div class="form-grid" style="margin-top:13px">
+                    <div class="field"><label>Data</label><input id="autoDate" type="date" required></div>
+                    <div class="field"><label>Documento / referência</label><input id="autoRef" placeholder="FT/FR/recibo"></div>
+                    <div class="field"><label>Tipo apurado</label><select id="autoKind"><option value="expense">Despesa</option><option value="sale">Venda / serviço</option><option value="bank">Banco / caixa</option><option value="tax">Impostos / contribuições</option></select></div>
+                    <div class="field"><label>Confiança</label><input id="autoConfidence" readonly></div>
+                    <div class="field"><label>Fornecedor / cliente / entidade</label><input id="autoEntity" placeholder="Entidade identificada"></div>
+                    <div class="field"><label>NIF da entidade</label><input id="autoNif" inputmode="numeric" placeholder="9 dígitos"></div>
+                    <div class="field span-2"><label>Descrição</label><input id="autoDescription" required placeholder="Descrição do documento"></div>
+                    <div class="field"><label>Rubrica / conta proposta</label><select id="autoAccount" class="auto-account-select"></select></div>
+                    <div class="field"><label>Contrapartida</label><select id="autoPayment"><option value="221">221 — Fornecedores c/c</option><option value="211">211 — Clientes c/c</option><option value="12">12 — Banco</option><option value="11">11 — Caixa</option><option value="245">245 — Segurança Social</option><option value="242">242 — Retenções de impostos</option></select></div>
+                    <div class="field"><label>Valor sem IVA (€)</label><input id="autoBase" type="number" min="0.01" step="0.01" required></div>
+                    <div class="field"><label>Taxa de IVA</label><select id="autoVat"><option value="23">23%</option><option value="13">13%</option><option value="6">6%</option><option value="0">0% / isento / sem IVA</option></select></div>
+                  </div>
+                  <div id="autoPreview" class="alert info" style="margin-top:13px"></div>
+                  <div class="form-actions"><button class="btn primary" type="submit">Criar lançamento automático</button><button class="btn" id="autoLearnBtn" type="button">Guardar classificação para esta entidade</button></div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="entry-panel" id="entry-sale">
+          <div class="grid two">
+            <div class="card"><h4>Registar venda ou prestação de serviço</h4>
+              <form id="saleForm">
+                <div class="form-grid">
+                  <div class="field"><label>Data</label><input type="date" id="saleDate" required></div>
+                  <div class="field"><label>Documento / referência</label><input id="saleRef" placeholder="FT 2026/001"></div>
+                  <div class="field span-2"><label>Descrição</label><input id="saleDesc" required placeholder="Venda de mercadorias ou serviço prestado"></div>
+                  <div class="field"><label>Cliente (opcional)</label><input id="saleCounterparty" placeholder="Cliente / entidade"></div>
+                  <div class="field"><label>NIF cliente</label><input id="saleNif" inputmode="numeric" placeholder="9 dígitos"></div>
+                  <div class="field"><label>Tipo de rendimento</label><select id="saleRevenue"><option value="71">71 — Vendas</option><option value="72">72 — Prestações de serviços</option></select></div>
+                  <div class="field"><label>Recebimento por</label><select id="salePayment"><option value="211">Clientes c/c</option><option value="12">Banco</option><option value="11">Caixa</option></select></div>
+                  <div class="field"><label>Valor sem IVA (€)</label><input id="saleBase" type="number" min="0.01" step="0.01" required></div>
+                  <div class="field"><label>Taxa de IVA</label><select id="saleVat"><option value="23">23%</option><option value="13">13%</option><option value="6">6%</option><option value="0">Isento / 0%</option></select></div>
+                  <div class="field span-2"><label>Anexar documento (opcional)</label><input id="saleFile" type="file" accept="application/pdf,.pdf,image/*,.csv,.xlsx,.xls"></div>
+                </div>
+                <div class="form-actions"><button class="btn primary" type="submit">Registar venda</button><span class="helper">Débito: recebimento. Crédito: vendas/serviços + IVA liquidado.</span></div>
+              </form>
+            </div>
+            <div class="card"><h4>Resultado do lançamento</h4><div id="salePreview" class="empty">Preencha os campos para visualizar a estrutura contabilística.</div></div>
+          </div>
+        </div>
+
+        <div class="entry-panel" id="entry-expense">
+          <div class="grid two">
+            <div class="card"><h4>Registar despesa</h4>
+              <form id="expenseForm">
+                <div class="form-grid">
+                  <div class="field"><label>Data</label><input type="date" id="expenseDate" required></div>
+                  <div class="field"><label>Documento / referência</label><input id="expenseRef" placeholder="FR 2026/001"></div>
+                  <div class="field span-2"><label>Descrição</label><input id="expenseDesc" required placeholder="Ex.: Renda, combustível, telecomunicações"></div>
+                  <div class="field"><label>Fornecedor (opcional)</label><input id="expenseCounterparty" placeholder="Fornecedor / entidade"></div>
+                  <div class="field"><label>NIF fornecedor</label><input id="expenseNif" inputmode="numeric" placeholder="9 dígitos"></div>
+                  <div class="field"><label>Conta de gasto</label><select id="expenseAccount" class="expense-account-select"></select></div>
+                  <div class="field"><label>Pagamento por</label><select id="expensePayment"><option value="221">Fornecedores c/c</option><option value="12">Banco</option><option value="11">Caixa</option></select></div>
+                  <div class="field"><label>Valor sem IVA (€)</label><input id="expenseBase" type="number" min="0.01" step="0.01" required></div>
+                  <div class="field"><label>Taxa de IVA</label><select id="expenseVat"><option value="23">23%</option><option value="13">13%</option><option value="6">6%</option><option value="0">Sem IVA / não dedutível</option></select></div>
+                  <div class="field span-2"><label>Anexar documento (opcional)</label><input id="expenseFile" type="file" accept="application/pdf,.pdf,image/*,.csv,.xlsx,.xls"></div>
+                </div>
+                <div class="form-actions"><button class="btn primary" type="submit">Registar despesa</button><span class="helper">Débito: gasto + IVA dedutível. Crédito: fornecedor, banco ou caixa.</span></div>
+              </form>
+            </div>
+            <div class="card"><h4>Resultado do lançamento</h4><div id="expensePreview" class="empty">Preencha os campos para visualizar a estrutura contabilística.</div></div>
+          </div>
+        </div>
+
+        <div class="entry-panel" id="entry-bank">
+          <div class="grid two">
+            <div class="card"><h4>Registar movimento de banco ou caixa</h4>
+              <form id="bankForm">
+                <div class="form-grid">
+                  <div class="field"><label>Data</label><input type="date" id="bankDate" required></div>
+                  <div class="field"><label>Referência</label><input id="bankRef" placeholder="Mov. bancário"></div>
+                  <div class="field span-2"><label>Descrição</label><input id="bankDesc" required placeholder="Ex.: Recebimento de cliente / pagamento de fornecedor"></div>
+                  <div class="field"><label>Movimento</label><select id="bankDirection"><option value="in">Entrada / recebimento</option><option value="out">Saída / pagamento</option></select></div>
+                  <div class="field"><label>Conta financeira</label><select id="bankAccount"><option value="12">12 — Banco</option><option value="11">11 — Caixa</option></select></div>
+                  <div class="field"><label>Conta de contrapartida</label><select class="account-select" id="bankCounterpart"></select></div>
+                  <div class="field"><label>Valor (€)</label><input id="bankAmount" type="number" min="0.01" step="0.01" required></div>
+                  <div class="field span-2"><label>Anexar comprovativo (opcional)</label><input id="bankFile" type="file" accept="application/pdf,.pdf,image/*,.csv,.xlsx,.xls"></div>
+                </div>
+                <div class="form-actions"><button class="btn primary" type="submit">Registar movimento</button><span class="helper">Use a conta de contrapartida para liquidar clientes, fornecedores, impostos ou outros saldos.</span></div>
+              </form>
+            </div>
+            <div class="card"><h4>Resultado do lançamento</h4><div id="bankPreview" class="empty">Preencha os campos para visualizar a estrutura contabilística.</div></div>
+          </div>
+        </div>
+
+        <div class="entry-panel" id="entry-manual">
+          <div class="grid two">
+            <div class="card"><h4>Lançamento manual</h4>
+              <form id="manualForm">
+                <div class="form-grid">
+                  <div class="field"><label>Data</label><input type="date" id="manualDate" required></div>
+                  <div class="field"><label>Referência</label><input id="manualRef" placeholder="Abertura / regularização"></div>
+                  <div class="field span-2"><label>Descrição</label><input id="manualDesc" required placeholder="Descrição do lançamento"></div>
+                  <div class="field"><label>Conta a débito</label><select class="account-select" id="manualDebit"></select></div>
+                  <div class="field"><label>Conta a crédito</label><select class="account-select" id="manualCredit"></select></div>
+                  <div class="field"><label>Valor (€)</label><input id="manualAmount" type="number" min="0.01" step="0.01" required></div>
+                  <div class="field"><label>Anexar comprovativo (opcional)</label><input id="manualFile" type="file" accept="application/pdf,.pdf,image/*,.csv,.xlsx,.xls"></div>
+                </div>
+                <div class="form-actions"><button class="btn primary" type="submit">Registar lançamento</button><span class="helper">Para saldos de abertura, use a data inicial do período e registe o lançamento por contrapartida adequada.</span></div>
+              </form>
+            </div>
+            <div class="card"><h4>Controlo</h4><div class="alert warning">O lançamento manual permite qualquer conta do plano simplificado. Confirme sempre a classificação contabilística antes de fechar o período.</div></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px"><h4>Diário de lançamentos</h4><div id="entryList"></div></div>
+      </section>
+
+      <section class="page" id="page-documents">
+        <div class="page-intro"><div><h3>Importar e anexar documentação</h3><p>Importe movimentos por CSV e associe documentos PDF, imagens ou ficheiros de suporte a vendas, despesas, banco ou impostos.</p></div></div>
+        <div class="grid two">
+          <div class="card">
+            <h4>Importar CSV</h4>
+            <div class="alert info">Formato recomendado: <b>data;tipo;descricao;valor_sem_iva;taxa_iva;conta_pagamento;conta_gasto_ou_rendimento;documento;entidade;nif</b></div>
+            <p class="note" style="margin:12px 0">Tipos aceites: <b>venda</b>, <b>despesa</b>, <b>banco_entrada</b> e <b>banco_saida</b>. Para banco, o campo “conta_gasto_ou_rendimento” é a contrapartida. Se não indicar conta numa despesa, a app propõe uma rubrica pela descrição e entidade.</p>
+            <div class="form-actions"><label class="btn primary" for="csvFile">Selecionar CSV</label><input id="csvFile" type="file" accept=".csv,.txt" hidden><button class="btn" id="templateCsvBtn">Descarregar modelo CSV</button></div>
+            <div id="importResult" style="margin-top:12px"></div>
+          </div>
+          <div class="card">
+            <h4>Anexar documento</h4>
+            <form id="attachmentForm">
+              <div class="form-grid">
+                <div class="field"><label>Tipo</label><select id="attachmentType"><option>Venda</option><option>Despesa</option><option>Banco</option><option>Impostos e contribuições</option><option>Outro</option></select></div>
+                <div class="field"><label>Data</label><input type="date" id="attachmentDate"></div>
+                <div class="field span-2"><label>Nota / referência</label><input id="attachmentNote" placeholder="Ex.: Extrato bancário junho 2026"></div>
+                <div class="field span-2"><label>Ficheiro (PDF, imagem ou documento)</label><input id="attachmentFile" type="file" accept="application/pdf,.pdf,image/*,.csv,.xlsx,.xls,.doc,.docx"></div>
+              </div>
+              <div class="form-actions"><button class="btn primary" type="submit">Anexar à sessão</button><span class="helper">Aceita PDFs, imagens e documentos. Os anexos seguem no ficheiro de exportação JSON; não são enviados para servidor.</span></div>
+            </form>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px"><h4>Documentos anexados</h4><div id="attachmentList"></div></div>
+      </section>
+
+      <section class="page" id="page-trial">
+        <div class="page-intro"><div><h3>Balancete</h3><p>Movimentos a débito e crédito, com saldo de cada conta no período escolhido.</p></div><button class="btn primary no-print" data-print="trial">Imprimir / guardar PDF</button></div>
+        <div class="report-card" id="trialReport"></div>
+      </section>
+
+      <section class="page" id="page-income">
+        <div class="page-intro"><div><h3>Demonstração de resultados</h3><p>Síntese de rendimentos e gastos reconhecidos no período.</p></div><button class="btn primary no-print" data-print="income">Imprimir / guardar PDF</button></div>
+        <div class="report-card" id="incomeReport"></div>
+      </section>
+
+      <section class="page" id="page-balance">
+        <div class="page-intro"><div><h3>Balanço</h3><p>Ativo, capital próprio e passivo apurados a partir dos saldos das contas.</p></div><button class="btn primary no-print" data-print="balance">Imprimir / guardar PDF</button></div>
+        <div class="report-card" id="balanceReport"></div>
+      </section>
+
+      <section class="page" id="page-taxes">
+        <div class="page-intro"><div><h3>Impostos e contribuições</h3><p>Registe encargo patronal, pagamento à Segurança Social e prepare o apuramento simplificado de IVA.</p></div></div>
+        <div class="grid two">
+          <div class="card">
+            <h4>Segurança Social</h4>
+            <form id="socialForm">
+              <div class="form-grid">
+                <div class="field"><label>Data</label><input type="date" id="socialDate" required></div>
+                <div class="field"><label>Operação</label><select id="socialAction"><option value="charge">Reconhecer encargo patronal</option><option value="payment">Pagar contribuição</option></select></div>
+                <div class="field span-2"><label>Descrição</label><input id="socialDesc" required value="Segurança Social"></div>
+                <div class="field"><label>Valor (€)</label><input id="socialAmount" type="number" min="0.01" step="0.01" required></div>
+                <div class="field"><label>Referência</label><input id="socialRef" placeholder="Guia SS"></div>
+                <div class="field span-2"><label>Anexar guia/comprovativo (opcional)</label><input id="socialFile" type="file" accept="application/pdf,.pdf,image/*"></div>
+              </div>
+              <div class="form-actions"><button class="btn primary" type="submit">Registar operação</button><span class="helper">Encargo: débito 635 / crédito 245. Pagamento: débito 245 / crédito 12.</span></div>
+            </form>
+          </div>
+          <div class="card">
+            <h4>Apuramento simplificado de IVA</h4>
+            <div id="vatSummary"></div>
+            <div class="form-grid" style="margin-top:13px">
+              <div class="field"><label>Data do apuramento</label><input type="date" id="vatDate"></div>
+              <div class="field"><label>Referência</label><input id="vatRef" placeholder="Apuramento IVA"></div>
+            </div>
+            <div class="form-actions"><button class="btn primary" id="settleVatBtn" type="button">Criar lançamento de apuramento</button><span class="helper">A criação deve ser efetuada apenas uma vez por período, depois de confirmar os documentos incluídos.</span></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px"><h4>Saldos de impostos e contribuições</h4><div id="taxBalances"></div></div>
+      </section>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const ACCOUNTS = [
+  {code:'11', name:'Caixa', type:'asset'},
+  {code:'12', name:'Depósitos à ordem / Banco', type:'asset'},
+  {code:'211', name:'Clientes c/c', type:'asset'},
+  {code:'221', name:'Fornecedores c/c', type:'liability'},
+  {code:'231', name:'Remunerações a pagar', type:'liability'},
+  {code:'242', name:'Retenções de impostos', type:'liability'},
+  {code:'2432', name:'IVA dedutível', type:'asset'},
+  {code:'2433', name:'IVA liquidado', type:'liability'},
+  {code:'2436', name:'IVA a pagar', type:'liability'},
+  {code:'2437', name:'IVA a recuperar', type:'asset'},
+  {code:'245', name:'Contribuições para a Segurança Social', type:'liability'},
+  {code:'251', name:'Instituições de crédito', type:'liability'},
+  {code:'261', name:'Sócios c/c', type:'liability'},
+  {code:'271', name:'Devedores diversos', type:'asset'},
+  {code:'278', name:'Outros credores', type:'liability'},
+  {code:'31', name:'Mercadorias', type:'asset'},
+  {code:'43', name:'Ativos fixos tangíveis', type:'asset'},
+  {code:'51', name:'Capital', type:'equity'},
+  {code:'56', name:'Resultados transitados', type:'equity'},
+  {code:'61', name:'Custo das mercadorias vendidas', type:'expense'},
+  {code:'611', name:'Mercadorias / compras para revenda', type:'expense'},
+  {code:'62', name:'Fornecimentos e serviços externos', type:'expense'},
+  {code:'621', name:'Subcontratos', type:'expense'},
+  {code:'6221', name:'Trabalhos especializados', type:'expense'},
+  {code:'6222', name:'Publicidade e propaganda', type:'expense'},
+  {code:'6226', name:'Conservação e reparação', type:'expense'},
+  {code:'6227', name:'Serviços bancários e meios de pagamento', type:'expense'},
+  {code:'6233', name:'Material de escritório', type:'expense'},
+  {code:'6241', name:'Eletricidade', type:'expense'},
+  {code:'6242', name:'Combustíveis', type:'expense'},
+  {code:'6243', name:'Água', type:'expense'},
+  {code:'6251', name:'Deslocações e viagens', type:'expense'},
+  {code:'6252', name:'Estadas e alojamento', type:'expense'},
+  {code:'6261', name:'Rendas e alugueres', type:'expense'},
+  {code:'6262', name:'Comunicações', type:'expense'},
+  {code:'6263', name:'Seguros', type:'expense'},
+  {code:'6265', name:'Contencioso, notariado e serviços jurídicos', type:'expense'},
+  {code:'6267', name:'Limpeza, higiene e conforto', type:'expense'},
+  {code:'631', name:'Remunerações do pessoal', type:'expense'},
+  {code:'635', name:'Encargos sobre remunerações', type:'expense'},
+  {code:'64', name:'Gastos de depreciação e amortização', type:'expense'},
+  {code:'68', name:'Outros gastos', type:'expense'},
+  {code:'69', name:'Gastos e perdas de financiamento', type:'expense'},
+  {code:'71', name:'Vendas', type:'revenue'},
+  {code:'72', name:'Prestações de serviços', type:'revenue'},
+  {code:'73', name:'Variação nos inventários da produção', type:'revenue'},
+  {code:'74', name:'Trabalhos para a própria entidade', type:'revenue'},
+  {code:'75', name:'Subsídios à exploração', type:'revenue'},
+  {code:'76', name:'Reversões', type:'revenue'},
+  {code:'77', name:'Ganhos e rendimentos de financiamento', type:'revenue'},
+  {code:'78', name:'Outros rendimentos e ganhos', type:'revenue'}
+];
+const ACCOUNT_MAP = Object.fromEntries(ACCOUNTS.map(a=>[a.code,a]));
+const today = new Date().toISOString().slice(0,10);
+const defaultYear = new Date().getFullYear();
+
+function blankState(){
+  return {
+    profile:{companyName:'',nif:'',year:defaultYear,currency:'EUR',from:`${defaultYear}-01-01`,to:`${defaultYear}-12-31`},
+    entries:[],attachments:[],counterpartyRules:{}
+  };
+}
+let state = blankState();
+let activeTab = 'dashboard';
+
+const $ = (id)=>document.getElementById(id);
+const money = (value)=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(Number(value||0));
+const num = (value)=>Number.parseFloat(value||0);
+const round = (v)=>Math.round((Number(v)+Number.EPSILON)*100)/100;
+const uid = ()=>`${Date.now().toString(36)}${Math.random().toString(36).slice(2,8)}`;
+const escapeHTML = (s='')=>String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtDate = (d)=> d ? new Intl.DateTimeFormat('pt-PT').format(new Date(`${d}T12:00:00`)) : '—';
+const accountLabel = (code)=> ACCOUNT_MAP[code] ? `${code} — ${ACCOUNT_MAP[code].name}` : `${code} — Conta não classificada`;
+
+function toast(message){
+  const el=$('toast'); el.textContent=message; el.classList.add('show');
+  clearTimeout(window.__toastTimer); window.__toastTimer=setTimeout(()=>el.classList.remove('show'),3200);
+}
+function tagClass(origin){
+  return origin==='Venda / serviço'?'sale':origin==='Despesa'?'expense':origin==='Banco / caixa'?'bank':origin==='Impostos / contribuições'?'tax':'manual';
+}
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_EXTENSIONS = new Set(['pdf','jpg','jpeg','png','webp','heic','csv','xlsx','xls','doc','docx']);
+function fileExtension(fileOrName){
+  const name=typeof fileOrName==='string'?fileOrName:(fileOrName?.name||'');
+  const parts=name.toLowerCase().split('.'); return parts.length>1?parts.pop():'';
+}
+function isAllowedAttachment(file){ return ALLOWED_ATTACHMENT_EXTENSIONS.has(fileExtension(file)); }
+function fileKind(att){
+  const ext=fileExtension(att.name), type=String(att.type||'').toLowerCase();
+  if(ext==='pdf'||type==='application/pdf') return {label:'PDF',className:'pdf'};
+  if(['jpg','jpeg','png','webp','heic'].includes(ext)||type.startsWith('image/')) return {label:'IMG',className:'image'};
+  if(['csv','xlsx','xls'].includes(ext)) return {label:'XLS',className:'sheet'};
+  if(['doc','docx'].includes(ext)) return {label:'DOC',className:'doc'};
+  return {label:'FILE',className:''};
+}
+function readFileAsDataUrl(file){
+  return new Promise((resolve,reject)=>{ const reader=new FileReader(); reader.onload=()=>resolve(reader.result); reader.onerror=()=>reject(reader.error); reader.readAsDataURL(file); });
+}
+async function attachmentFromInput(inputId, type, note, date){
+  const input=$(inputId), file=input?.files?.[0];
+  if(!file) return {ok:true,id:null};
+  if(!isAllowedAttachment(file)){ toast('Formato não suportado. Anexe PDF, imagem, Excel, CSV ou Word.'); return {ok:false,id:null}; }
+  if(file.size>MAX_ATTACHMENT_BYTES){ toast('Cada anexo pode ter até 20 MB.'); return {ok:false,id:null}; }
+  try{
+    const dataUrl=await readFileAsDataUrl(file);
+    const att={id:uid(),name:file.name,type:file.type||'Ficheiro',size:file.size||0,category:type,note:note||'',date:date||today,url:URL.createObjectURL(file),dataUrl};
+    state.attachments.push(att);
+    return {ok:true,id:att.id};
+  }catch{ toast('Não foi possível guardar o ficheiro anexado.'); return {ok:false,id:null}; }
+}
+function ruleKey(counterparty='', nif=''){
+  const cleanNif=String(nif||'').replace(/\D/g,'');
+  return cleanNif.length===9?`nif:${cleanNif}`:(counterparty?`entity:${norm(counterparty)}`:'');
+}
+function learnCounterparty({counterparty='',nif='',account='',kind='',description=''}){
+  const key=ruleKey(counterparty,nif); if(!key||!account||!kind)return;
+  state.counterpartyRules=state.counterpartyRules||{};
+  state.counterpartyRules[key]={counterparty:counterparty||'',nif:String(nif||'').replace(/\D/g,''),account:String(account),kind,description:description||'',updatedAt:new Date().toISOString()};
+}
+function addEntry({date,origin,ref,description,lines,attachmentId=null,counterparty='',nif='',rubric='',classification='',source='manual'}){
+  const clean=lines.map(l=>({account:String(l.account),debit:round(l.debit||0),credit:round(l.credit||0)})).filter(l=>l.debit||l.credit);
+  const deb=round(clean.reduce((s,l)=>s+l.debit,0)), cred=round(clean.reduce((s,l)=>s+l.credit,0));
+  if(!date || !description || !clean.length || Math.abs(deb-cred)>0.009 || deb<=0){ toast('O lançamento não está equilibrado.'); return false; }
+  const entry={id:uid(),date,origin,ref:ref||'',description,lines:clean,attachmentId,counterparty:counterparty||'',nif:String(nif||'').replace(/\D/g,''),rubric:rubric||'',classification:classification||'',source,createdAt:new Date().toISOString()};
+  state.entries.push(entry);
+  const account=(origin==='Venda / serviço'?clean.find(l=>ACCOUNT_MAP[l.account]?.type==='revenue')?.account:clean.find(l=>ACCOUNT_MAP[l.account]?.type==='expense'||l.account==='43')?.account)||'';
+  const kind=origin==='Venda / serviço'?'sale':origin==='Despesa'?'expense':origin==='Banco / caixa'?'bank':origin==='Impostos / contribuições'?'tax':'';
+  if(counterparty && account && kind) learnCounterparty({counterparty,nif,account,kind,description});
+  state.entries.sort((a,b)=>a.date.localeCompare(b.date)||a.createdAt.localeCompare(b.createdAt));
+  renderAll(); toast('Lançamento registado com sucesso.'); return true;
+}
+function makeSale({date,ref,description,revenue,payment,base,vatRate,attachmentId,counterparty='',nif='',classification='',source='manual'}){
+  const b=round(base), vat=round(b*Number(vatRate||0)/100), total=round(b+vat);
+  return {date,origin:'Venda / serviço',ref,description,attachmentId,counterparty,nif,rubric:accountLabel(revenue),classification,source,lines:[
+    {account:payment,debit:total},{account:revenue,credit:b},...(vat?[{account:'2433',credit:vat}]:[])
+  ]};
+}
+function makeExpense({date,ref,description,expense,payment,base,vatRate,attachmentId,counterparty='',nif='',classification='',source='manual'}){
+  const b=round(base), vat=round(b*Number(vatRate||0)/100), total=round(b+vat);
+  return {date,origin:'Despesa',ref,description,attachmentId,counterparty,nif,rubric:accountLabel(expense),classification,source,lines:[
+    {account:expense,debit:b},...(vat?[{account:'2432',debit:vat}]:[]),{account:payment,credit:total}
+  ]};
+}
+function makeBank({date,ref,description,direction,bank,counterpart,amount,attachmentId,counterparty='',nif='',classification='',source='manual'}){
+  const a=round(amount);
+  return {date,origin:'Banco / caixa',ref,description,attachmentId,counterparty,nif,rubric:accountLabel(counterpart),classification,source,lines:direction==='in'?
+    [{account:bank,debit:a},{account:counterpart,credit:a}]:
+    [{account:counterpart,debit:a},{account:bank,credit:a}]
+  };
+}
+function getPeriod(){
+  return {from:$('periodFrom').value||state.profile.from,to:$('periodTo').value||state.profile.to};
+}
+function periodEntries(){
+  const {from,to}=getPeriod();
+  return state.entries.filter(e=>(!from||e.date>=from)&&(!to||e.date<=to));
+}
+function calculateBalances(entries=periodEntries()){
+  const map={};
+  ACCOUNTS.forEach(a=>map[a.code]={...a,debit:0,credit:0});
+  entries.forEach(e=>e.lines.forEach(l=>{
+    if(!map[l.account]) map[l.account]={code:l.account,name:'Conta não classificada',type:'other',debit:0,credit:0};
+    map[l.account].debit+=l.debit; map[l.account].credit+=l.credit;
+  }));
+  return Object.values(map).map(a=>({...a,debit:round(a.debit),credit:round(a.credit),balanceDebit:round(Math.max(0,a.debit-a.credit)),balanceCredit:round(Math.max(0,a.credit-a.debit))})).filter(a=>a.debit||a.credit);
+}
+function accountValue(code, normal='credit', balances=calculateBalances()){
+  const row=balances.find(a=>a.code===code); if(!row) return 0;
+  return normal==='debit'?round(row.debit-row.credit):round(row.credit-row.debit);
+}
+function totalByPrefix(prefixes, normal, balances=calculateBalances()){
+  return round(balances.filter(a=>prefixes.some(p=>a.code===p||a.code.startsWith(p))).reduce((s,a)=>s+(normal==='debit'?a.debit-a.credit:a.credit-a.debit),0));
+}
+function drData(balances=calculateBalances()){
+  const revenueRows=balances.filter(a=>a.type==='revenue').map(a=>({...a,value:round(a.credit-a.debit)})).filter(a=>a.value);
+  const expenseRows=balances.filter(a=>a.type==='expense').map(a=>({...a,value:round(a.debit-a.credit)})).filter(a=>a.value);
+  const revenue=round(revenueRows.reduce((s,r)=>s+r.value,0));
+  const expenses=round(expenseRows.reduce((s,r)=>s+r.value,0));
+  return {revenueRows,expenseRows,revenue,expenses,result:round(revenue-expenses)};
+}
+function reportCompany(){
+  const p=state.profile; return {name:p.companyName||'Empresa não identificada',nif:p.nif?`NIF ${p.nif}`:'NIF não indicado',period:`${fmtDate(getPeriod().from)} a ${fmtDate(getPeriod().to)}`};
+}
+function renderHeader(){
+  const titles={dashboard:'Visão geral',entries:'Lançamentos',documents:'Importar e anexos',trial:'Balancete',income:'Demonstração de resultados',balance:'Balanço',taxes:'Impostos e contribuições'};
+  $('topTitle').textContent=titles[activeTab]||'Conta360';
+  $('companyTop').textContent=state.profile.companyName || 'Empresa não identificada';
+  $('periodFrom').value=state.profile.from; $('periodTo').value=state.profile.to;
+}
+function renderDashboard(){
+  const b=calculateBalances(), dr=drData(b);
+  const cash=round((accountValue('11','debit',b))+(accountValue('12','debit',b)));
+  const clients=accountValue('211','debit',b);
+  $('kpiGrid').innerHTML=`
+    <div class="card kpi"><div class="label">Rendimentos do período</div><div class="value">${money(dr.revenue)}</div><div class="sub">Contas 71 a 78</div></div>
+    <div class="card kpi"><div class="label">Gastos do período</div><div class="value">${money(dr.expenses)}</div><div class="sub">Contas 61 a 69</div></div>
+    <div class="card kpi"><div class="label">Resultado líquido</div><div class="value" style="color:${dr.result>=0?'var(--good)':'var(--bad)'}">${money(dr.result)}</div><div class="sub">${dr.result>=0?'Resultado positivo':'Resultado negativo'}</div></div>
+    <div class="card kpi"><div class="label">Banco e caixa</div><div class="value">${money(cash)}</div><div class="sub">Clientes: ${money(clients)}</div></div>`;
+  const recent=[...periodEntries()].sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt)).slice(0,5);
+  $('dashboardEntries').innerHTML=recent.length?`<div class="table-wrap"><table class="data-table"><thead><tr><th>Data</th><th>Origem</th><th>Descrição</th><th>Referência</th><th class="num">Valor</th></tr></thead><tbody>${recent.map(e=>`<tr><td>${fmtDate(e.date)}</td><td><span class="badge ${tagClass(e.origin)}">${escapeHTML(e.origin)}</span></td><td class="strong">${escapeHTML(e.description)}</td><td class="muted">${escapeHTML(e.ref||'—')}</td><td class="num">${money(e.lines.reduce((s,l)=>s+l.debit,0))}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Ainda não existem lançamentos no período. Comece por registar uma venda, despesa ou movimento bancário.</div>`;
+}
+function renderEntryList(){
+  const entries=[...state.entries].sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt));
+  $('entryList').innerHTML=entries.length?`<div class="table-wrap"><table class="data-table"><thead><tr><th>Data</th><th>Origem</th><th>Descrição / contas</th><th>Referência</th><th class="num">Débito</th><th class="num">Crédito</th><th></th></tr></thead><tbody>${entries.map(e=>{
+    const deb=round(e.lines.reduce((s,l)=>s+l.debit,0)),cred=round(e.lines.reduce((s,l)=>s+l.credit,0));
+    const lines=e.lines.map(l=>`${l.debit?'<b>D</b>':'<b>C</b>'} ${escapeHTML(accountLabel(l.account))} — ${money(l.debit||l.credit)}`).join('<br>');
+    const entity=e.counterparty?`<div class="muted" style="font-size:11px;margin-top:3px">${escapeHTML(e.counterparty)}${e.nif?` · NIF ${escapeHTML(e.nif)}`:''}${e.rubric?` · ${escapeHTML(e.rubric)}`:''}</div>`:'';
+    const automated=e.source==='automatic'?'<span class="badge manual" style="margin-top:4px">Automático</span>':'';
+    return `<tr><td>${fmtDate(e.date)}</td><td><span class="badge ${tagClass(e.origin)}">${escapeHTML(e.origin)}</span></td><td><div class="strong">${escapeHTML(e.description)}</div>${entity}<div class="muted" style="font-size:11px;margin-top:4px">${lines}</div></td><td class="muted">${escapeHTML(e.ref||'—')}${e.attachmentId?'<br><span class="badge manual" style="margin-top:4px">Anexo</span>':''}${automated}</td><td class="num">${money(deb)}</td><td class="num">${money(cred)}</td><td><div class="compact-actions"><button class="icon-btn delete" data-delete-entry="${e.id}">Eliminar</button></div></td></tr>`;
+  }).join('')}</tbody></table></div>`:`<div class="empty">Ainda não há lançamentos registados.</div>`;
+  document.querySelectorAll('[data-delete-entry]').forEach(btn=>btn.onclick=()=>{
+    if(confirm('Eliminar este lançamento?')){state.entries=state.entries.filter(e=>e.id!==btn.dataset.deleteEntry);renderAll();toast('Lançamento eliminado.');}
+  });
+}
+function reportHeading(title){
+  const c=reportCompany(); return `<div class="report-header"><div class="report-heading-lockup"><img class="report-logo" src="assets/aloeworld-consulting-logo-new.png" alt="AloeWorld Consulting"><div><h2>${title}</h2><p><b>${escapeHTML(c.name)}</b><br>${escapeHTML(c.nif)}<br>Período: ${escapeHTML(c.period)}</p></div></div><div class="report-summary"><div>Emitido em<b>${fmtDate(today)}</b></div><div>Moeda<b>EUR</b></div></div></div>`;
+}
+function renderTrial(){
+  const b=calculateBalances();
+  const totalD=round(b.reduce((s,a)=>s+a.debit,0)), totalC=round(b.reduce((s,a)=>s+a.credit,0)), balD=round(b.reduce((s,a)=>s+a.balanceDebit,0)),balC=round(b.reduce((s,a)=>s+a.balanceCredit,0));
+  const valid=Math.abs(totalD-totalC)<0.01&&Math.abs(balD-balC)<0.01;
+  $('trialReport').innerHTML=reportHeading('Balancete de verificação')+
+    `<div class="status-line no-print"><span class="dot ${valid?'':'warn'}"></span>${valid?'Balancete equilibrado.':'Atenção: existem diferenças no balancete.'}</div>`+
+    (b.length?`<table class="report-table"><thead><tr><th>Código</th><th>Conta</th><th class="num">Mov. débito</th><th class="num">Mov. crédito</th><th class="num">Saldo devedor</th><th class="num">Saldo credor</th></tr></thead><tbody>${b.sort((a,b)=>a.code.localeCompare(b.code,undefined,{numeric:true})).map(a=>`<tr><td>${a.code}</td><td>${escapeHTML(a.name)}</td><td class="num">${money(a.debit)}</td><td class="num">${money(a.credit)}</td><td class="num">${a.balanceDebit?money(a.balanceDebit):'—'}</td><td class="num">${a.balanceCredit?money(a.balanceCredit):'—'}</td></tr>`).join('')}</tbody><tfoot><tr><td colspan="2">Total</td><td class="num">${money(totalD)}</td><td class="num">${money(totalC)}</td><td class="num">${money(balD)}</td><td class="num">${money(balC)}</td></tr></tfoot></table>`:`<div class="empty">Sem movimentos no período selecionado.</div>`) +
+    `<p class="footer-note">Mapa gerado a partir dos lançamentos registados nesta aplicação. Confirme o plano de contas e os ajustamentos de fecho antes de uso formal.</p>`;
+}
+function renderIncome(){
+  const d=drData();
+  const rows=(items)=>items.length?items.map(a=>`<tr><td>${a.code}</td><td>${escapeHTML(a.name)}</td><td class="num">${money(a.value)}</td></tr>`).join(''):`<tr><td colspan="3" class="muted">Sem movimentos.</td></tr>`;
+  $('incomeReport').innerHTML=reportHeading('Demonstração de resultados por naturezas')+
+    `<table class="report-table"><thead><tr><th>Código</th><th>Rubrica</th><th class="num">Valor</th></tr></thead><tbody>
+      <tr class="section"><td colspan="3">Rendimentos</td></tr>${rows(d.revenueRows)}
+      <tr class="total"><td colspan="2">Total de rendimentos</td><td class="num">${money(d.revenue)}</td></tr>
+      <tr class="section"><td colspan="3">Gastos</td></tr>${rows(d.expenseRows)}
+      <tr class="total"><td colspan="2">Total de gastos</td><td class="num">${money(d.expenses)}</td></tr>
+      <tr class="grand-total"><td colspan="2">Resultado líquido do período</td><td class="num">${money(d.result)}</td></tr>
+    </tbody></table><p class="footer-note">A apresentação é simplificada e destinada a gestão interna. O resultado não inclui lançamentos de fecho, impostos sobre o rendimento ou ajustamentos que não tenham sido registados.</p>`;
+}
+function renderBalance(){
+  const b=calculateBalances(), d=drData(b);
+  const assets=b.filter(a=>a.type==='asset'&&a.balanceDebit>0).map(a=>({...a,value:a.balanceDebit}));
+  const liabilities=b.filter(a=>a.type==='liability'&&a.balanceCredit>0).map(a=>({...a,value:a.balanceCredit}));
+  const equity=b.filter(a=>a.type==='equity'&&a.balanceCredit>0).map(a=>({...a,value:a.balanceCredit}));
+  const totalAssets=round(assets.reduce((s,a)=>s+a.value,0));
+  const totalLiabilities=round(liabilities.reduce((s,a)=>s+a.value,0));
+  const totalEquityBase=round(equity.reduce((s,a)=>s+a.value,0));
+  const totalEquity=round(totalEquityBase+d.result);
+  const rightTotal=round(totalLiabilities+totalEquity);
+  const aligned=Math.abs(totalAssets-rightTotal)<0.02;
+  const tableRows=(rows)=>rows.length?rows.map(a=>`<tr><td>${escapeHTML(a.name)}</td><td class="num">${money(a.value)}</td></tr>`).join(''):`<tr><td class="muted">Sem saldo</td><td class="num">—</td></tr>`;
+  $('balanceReport').innerHTML=reportHeading('Balanço simplificado')+
+    `<div class="status-line no-print"><span class="dot ${aligned?'':'warn'}"></span>${aligned?'Ativo igual a capital próprio e passivo.':'Mapa ainda não está equilibrado; reveja saldos de abertura, classificações e lançamentos.'}</div>
+    <div class="balance-columns">
+      <div class="balance-side"><h5>ATIVO</h5><table class="report-table"><tbody>${tableRows(assets)}<tr class="total"><td>Total do ativo</td><td class="num">${money(totalAssets)}</td></tr></tbody></table></div>
+      <div class="balance-side"><h5>CAPITAL PRÓPRIO E PASSIVO</h5><table class="report-table"><tbody>
+        <tr class="section"><td colspan="2">Capital próprio</td></tr>${tableRows(equity)}
+        <tr><td>Resultado líquido do período</td><td class="num">${money(d.result)}</td></tr>
+        <tr class="total"><td>Total do capital próprio</td><td class="num">${money(totalEquity)}</td></tr>
+        <tr class="section"><td colspan="2">Passivo</td></tr>${tableRows(liabilities)}
+        <tr class="total"><td>Total do passivo</td><td class="num">${money(totalLiabilities)}</td></tr>
+        <tr class="grand-total"><td>Total capital próprio e passivo</td><td class="num">${money(rightTotal)}</td></tr>
+      </tbody></table></div>
+    </div><p class="footer-note">O resultado do período é integrado no capital próprio apenas para efeitos de apresentação deste balanço simplificado.</p>`;
+}
+function renderTaxData(){
+  const b=calculateBalances();
+  const outVat=Math.max(0,accountValue('2433','credit',b));
+  const inVat=Math.max(0,accountValue('2432','debit',b));
+  const net=round(outVat-inVat);
+  $('vatSummary').innerHTML=`<div class="alert ${net>0?'warning':'success'}"><b>IVA liquidado:</b> ${money(outVat)}<br><b>IVA dedutível:</b> ${money(inVat)}<br><b>Posição estimada:</b> ${net>=0?`IVA a pagar de ${money(net)}`:`IVA a recuperar de ${money(Math.abs(net))}`}</div>`;
+  const codes=['242','2432','2433','2436','2437','245'];
+  const rows=b.filter(a=>codes.includes(a.code)).sort((a,b)=>a.code.localeCompare(b.code));
+  $('taxBalances').innerHTML=rows.length?`<div class="table-wrap"><table class="data-table"><thead><tr><th>Conta</th><th class="num">Saldo devedor</th><th class="num">Saldo credor</th></tr></thead><tbody>${rows.map(a=>`<tr><td><b>${a.code}</b> — ${escapeHTML(a.name)}</td><td class="num">${a.balanceDebit?money(a.balanceDebit):'—'}</td><td class="num">${a.balanceCredit?money(a.balanceCredit):'—'}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Ainda não há movimentos de IVA, impostos ou contribuições no período.</div>`;
+}
+function renderAttachments(){
+  const atts=[...state.attachments].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  $('attachmentList').innerHTML=atts.length?atts.map(a=>{
+    const kind=fileKind(a), openUrl=a.url||a.dataUrl||'';
+    const formattedSize=a.size>=1024*1024?`${(a.size/(1024*1024)).toFixed(1)} MB`:`${Math.ceil(a.size/1024)} KB`;
+    return `<div class="attachment-row"><div><div class="attachment-name"><span class="file-kind ${kind.className}">${kind.label}</span>${escapeHTML(a.name)}</div><div class="attachment-meta">${escapeHTML(a.category||'Outro')} · ${fmtDate(a.date)} · ${formattedSize}${a.note?` · ${escapeHTML(a.note)}`:''}</div></div><div class="compact-actions">${openUrl?`<a class="icon-btn" href="${openUrl}" target="_blank" rel="noopener">${kind.label==='PDF'?'Abrir PDF':'Abrir'}</a>`:''}<button class="icon-btn delete" data-delete-attachment="${a.id}">Eliminar</button></div></div>`;
+  }).join(''):`<div class="empty">Ainda não foram anexados documentos.</div>`;
+  document.querySelectorAll('[data-delete-attachment]').forEach(btn=>btn.onclick=()=>{
+    const a=state.attachments.find(x=>x.id===btn.dataset.deleteAttachment); if(a?.url?.startsWith('blob:'))URL.revokeObjectURL(a.url);
+    state.attachments=state.attachments.filter(a=>a.id!==btn.dataset.deleteAttachment);renderAttachments();toast('Documento removido.');
+  });
+}
+function renderAll(){
+  if ($('companyName')) { $('companyName').value=state.profile.companyName||''; $('companyNif').value=state.profile.nif||''; $('companyYear').value=state.profile.year||defaultYear; }
+  renderHeader(); renderDashboard(); renderEntryList(); renderTrial(); renderIncome(); renderBalance(); renderTaxData(); renderAttachments(); renderAutoRules();
+}
+function fillAccountSelects(){
+  document.querySelectorAll('.account-select').forEach(sel=>{
+    const current=sel.value;
+    sel.innerHTML=ACCOUNTS.map(a=>`<option value="${a.code}">${escapeHTML(accountLabel(a.code))}</option>`).join('');
+    if([...sel.options].some(o=>o.value===current)) sel.value=current;
+  });
+  document.querySelectorAll('.expense-account-select').forEach(sel=>{
+    const current=sel.value||'62'; const list=ACCOUNTS.filter(a=>a.type==='expense'||a.code==='43');
+    sel.innerHTML=list.map(a=>`<option value="${a.code}">${escapeHTML(accountLabel(a.code))}</option>`).join('');
+    sel.value=[...sel.options].some(o=>o.value===current)?current:'62';
+  });
+  document.querySelectorAll('.auto-account-select').forEach(sel=>{
+    const current=sel.value||'62';
+    sel.innerHTML=ACCOUNTS.filter(a=>['expense','revenue','asset','liability'].includes(a.type)&&!['11','12','211','221','231','242','2432','2433','2436','2437','245','251','261','271','278'].includes(a.code)).map(a=>`<option value="${a.code}">${escapeHTML(accountLabel(a.code))}</option>`).join('');
+    sel.value=[...sel.options].some(o=>o.value===current)?current:'62';
+  });
+  $('bankCounterpart').value='211'; $('manualDebit').value='12'; $('manualCredit').value='51';
+}
+function switchTab(tab){
+  activeTab=tab;
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===`page-${tab}`));
+  renderHeader();
+}
+function switchEntryTab(tab){
+  document.querySelectorAll('#entryTabs .subtab').forEach(b=>b.classList.toggle('active',b.dataset.entryTab===tab));
+  document.querySelectorAll('.entry-panel').forEach(p=>p.classList.toggle('active',p.id===`entry-${tab}`));
+}
+function preview(target, lines){
+  if(!lines?.length){$(target).className='empty';$(target).textContent='Preencha os campos para visualizar a estrutura contabilística.';return;}
+  const deb=lines.filter(l=>l.debit).map(l=>`<li><b>Débito</b> — ${escapeHTML(accountLabel(l.account))}: <strong>${money(l.debit)}</strong></li>`).join('');
+  const cred=lines.filter(l=>l.credit).map(l=>`<li><b>Crédito</b> — ${escapeHTML(accountLabel(l.account))}: <strong>${money(l.credit)}</strong></li>`).join('');
+  $(target).className='alert info';$(target).innerHTML=`<b>Estrutura prevista</b><ul style="margin:8px 0 0;padding-left:17px;line-height:1.7">${deb}${cred}</ul>`;
+}
+function updateSalePreview(){
+  const base=num($('saleBase').value), rate=num($('saleVat').value);
+  if(base<=0)return preview('salePreview',null);
+  preview('salePreview',makeSale({date:today,ref:'',description:'',revenue:$('saleRevenue').value,payment:$('salePayment').value,base,vatRate:rate}).lines);
+}
+function updateExpensePreview(){
+  const base=num($('expenseBase').value), rate=num($('expenseVat').value);
+  if(base<=0)return preview('expensePreview',null);
+  preview('expensePreview',makeExpense({date:today,ref:'',description:'',expense:$('expenseAccount').value,payment:$('expensePayment').value,base,vatRate:rate}).lines);
+}
+function updateBankPreview(){
+  const amount=num($('bankAmount').value); if(amount<=0)return preview('bankPreview',null);
+  preview('bankPreview',makeBank({date:today,ref:'',description:'',direction:$('bankDirection').value,bank:$('bankAccount').value,counterpart:$('bankCounterpart').value,amount}).lines);
+}
+function setFormDates(){
+  ['autoDate','saleDate','expenseDate','bankDate','manualDate','attachmentDate','socialDate','vatDate'].forEach(id=>$(id).value=today);
+}
+function exportData(){
+  const payload={...state,attachments:state.attachments.map(({url,...a})=>a),exportedAt:new Date().toISOString(),app:'Conta360',attachmentsIncluded:true};
+  downloadFile(`conta360_${state.profile.year||defaultYear}_${today}.json`,JSON.stringify(payload,null,2),'application/json');
+}
+function downloadFile(filename,text,type='text/plain'){
+  const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([text],{type}));link.download=filename;document.body.appendChild(link);link.click();setTimeout(()=>{URL.revokeObjectURL(link.href);link.remove();},300);
+}
+function importJSON(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data || !Array.isArray(data.entries)) throw new Error();
+      state={profile:{...blankState().profile,...data.profile},entries:data.entries||[],attachments:(data.attachments||[]).map(a=>({...a,url:a.dataUrl||null})),counterpartyRules:data.counterpartyRules||{}};
+      fillAccountSelects();renderAll();toast(data.attachmentsIncluded?'Dados e anexos importados.':'Dados importados. Alguns anexos antigos podem ter de ser associados novamente.');
+    }catch{toast('Não foi possível importar este ficheiro JSON.');}
+  };reader.readAsText(file,'utf-8');
+}
+
+let autoDraft=null;
+let pdfjsPromise=null;
+function normalizeSpaces(v=''){return String(v||'').replace(/\s+/g,' ').trim();}
+function cleanNif(v=''){const x=String(v||'').replace(/\D/g,'');return x.length===9?x:'';}
+function parsePtDate(v=''){
+  const m=String(v).match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/); if(!m)return'';
+  let [,d,mo,y]=m; if(y.length===2)y=`20${y}`; const out=`${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  return /^20\d\d-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(out)?out:'';
+}
+function lineValue(text, labels){
+  const lines=String(text||'').split(/\r?\n/).map(normalizeSpaces).filter(Boolean);
+  for(const line of lines){
+    for(const label of labels){
+      const r=new RegExp(`${label}\\s*[:\\-]?\\s*(.{2,110})`,'i');const m=line.match(r);if(m)return m[1].trim();
+    }
+  }
+  const flat=normalizeSpaces(text);
+  for(const label of labels){const m=flat.match(new RegExp(`${label}\\s*[:\\-]?\\s*([^|;]{2,100})`,'i'));if(m)return m[1].trim();}
+  return '';
+}
+function extractDate(text){
+  const labeled=lineValue(text,['data de emiss[aã]o','data emiss[aã]o','data da fatura','data do documento','emiss[aã]o','data']);
+  return parsePtDate(labeled)||parsePtDate(String(text).match(/\b\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}\b/)?.[0]||'')||today;
+}
+function moneyFromText(v=''){
+  const m=String(v).match(/(?:€|EUR)?\s*([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/);return m?parseAmount(m[1]):0;
+}
+function extractAmounts(text){
+  const flat=normalizeSpaces(text);
+  const base=moneyFromText(lineValue(flat,['total sem iva','base tribut[aá]vel','subtotal','valor sem iva']))||0;
+  const total=moneyFromText(lineValue(flat,['total a pagar','total documento','valor total','total com iva','total']))||0;
+  const rate=Number((flat.match(/\b(23|13|6)\s*%/)||[])[1]||0);
+  let b=base, vatRate=rate;
+  if(!b&&total&&rate)b=round(total/(1+rate/100));
+  if(!b&&total)b=total;
+  if(b&&total&&!vatRate){const ratio=round((total-b)/b*100);if([6,13,23].includes(Math.round(ratio)))vatRate=Math.round(ratio);}
+  return {base:round(b),total:round(total||b),vatRate};
+}
+function extractNif(text){
+  const labeled=lineValue(text,['nif','nipc','vat number','vat']);
+  const hit=cleanNif(labeled); if(hit)return hit;
+  const candidates=[...String(text||'').matchAll(/\b(?:PT\s*)?(\d{9})\b/g)].map(m=>m[1]); const own=cleanNif(state.profile?.nif||''); return candidates.find(x=>x!==own)||candidates[0]||'';
+}
+function extractReference(text){
+  const v=lineValue(text,['fatura\\s*(?:n[.ºo]|numero|nº|no)?','documento\\s*(?:n[.ºo]|numero|nº|no)?','refer[eê]ncia','recibo']);
+  if(v)return v.replace(/^[:\-\s]+/,'').slice(0,60);
+  const m=String(text||'').match(/\b(?:FT|FR|FS|NC|RC|FAC|FA)\s*[-/]?\s*\d{1,6}(?:[-/]\d{1,6})?\b/i);return m?m[0]:'';
+}
+function extractCounterparty(text, kind){
+  const labels=kind==='sale'?['cliente','adquirente','faturado a','destinat[aá]rio']:['fornecedor','emitente','vendedor','entidade','prestador'];
+  let v=lineValue(text,labels).replace(/\b(?:nif|nipc|morada|data|telefone)\b.*$/i,'').trim();
+  if(v && v.length>2 && v.length<90 && !/^\d/.test(v))return v;
+  const lines=String(text||'').split(/\r?\n/).map(normalizeSpaces).filter(Boolean);
+  const companyish=lines.find(x=>/[A-ZÁÀÂÃÇÉÊÍÓÔÕÚÜ][A-ZÁÀÂÃÇÉÊÍÓÔÕÚÜ\s&.,-]{5,}(?:LDA|L\.DA|SA|UNIPESSOAL|LIMITED|PORTUGAL)?/i.test(x));
+  return companyish?companyish.slice(0,80):'';
+}
+const CLASSIFICATION_RULES=[
+  {account:'43',terms:['computador','portatil','laptop','impressora','equipamento','mobiliario','máquina','maquina'],label:'Ativo fixo tangível'},
+  {account:'611',terms:['mercadoria','mercadorias','stock','revenda','compra para venda'],label:'Mercadorias / compras para revenda'},
+  {account:'6241',terms:['eletricidade','electricidade','energia','edp','endesa','galp power'],label:'Eletricidade'},
+  {account:'6242',terms:['combustivel','gasolina','gasoleo','diesel','repsol','galp','bp','prios'],label:'Combustíveis'},
+  {account:'6243',terms:['agua','água','abastecimento de agua','abastecimento de água'],label:'Água'},
+  {account:'6261',terms:['renda','arrendamento','aluguer de imovel','aluguer de imóvel','locação'],label:'Rendas e alugueres'},
+  {account:'6262',terms:['telecomunicacoes','telecomunicações','telefone','telemovel','telemóvel','internet','vodafone','meo','nos '],label:'Comunicações'},
+  {account:'6263',terms:['seguro','apolice','apólice','fidelidade','allianz','tranquilidade','ageas'],label:'Seguros'},
+  {account:'6222',terms:['publicidade','marketing','google ads','meta ads','facebook ads','instagram ads','anuncio','anúncio'],label:'Publicidade e propaganda'},
+  {account:'6221',terms:['contabilidade','contabilista','consultoria','advogado','solicitador','honorarios','honorários','servicos juridicos','serviços jurídicos'],label:'Trabalhos especializados'},
+  {account:'6226',terms:['reparacao','reparação','oficina','manutencao','manutenção','conservacao','conservação'],label:'Conservação e reparação'},
+  {account:'6227',terms:['comissao bancaria','comissão bancária','comissao de pagamento','comissão de pagamento','taxa multibanco','stripe','paypal','terminal de pagamento'],label:'Serviços bancários e meios de pagamento'},
+  {account:'6233',terms:['material de escritorio','material de escritório','papelaria','toner','tinteiro'],label:'Material de escritório'},
+  {account:'6251',terms:['portagem','viagem','deslocacao','deslocação','taxi','táxi','uber','bolt','km'],label:'Deslocações e viagens'},
+  {account:'6252',terms:['alojamento','hotel','estada','booking'],label:'Estadas e alojamento'},
+  {account:'6265',terms:['notario','notário','registo predial','certidao','certidão','tribunal','processo judicial'],label:'Serviços jurídicos e notariado'},
+  {account:'6267',terms:['limpeza','higiene','detergente'],label:'Limpeza, higiene e conforto'},
+  {account:'631',terms:['salario','salário','ordenado','remuneracao','remuneração'],label:'Remunerações do pessoal'},
+  {account:'635',terms:['seguranca social','segurança social','tsu','encargo patronal'],label:'Encargos sobre remunerações'},
+  {account:'69',terms:['juros','encargos financeiros'],label:'Gastos de financiamento'},
+  {account:'68',terms:['iuc','imi','coima','multa','taxa municipal','imposto'],label:'Outros gastos / impostos'}
+];
+function classifyDocument({text='',requestedType='auto',counterparty='',nif=''}){
+  const hay=normalizeSpaces(`${text} ${counterparty}`).toLowerCase();
+  const known=state.counterpartyRules?.[ruleKey(counterparty,nif)];
+  let kind=requestedType==='auto'?'':requestedType;
+  if(!kind){
+    if(/extrato bancario|extrato de conta|movimento bancario|iban|transferencia bancária|transferência bancária/.test(hay))kind='bank';
+    else if(/seguranca social|segurança social|guia de pagamento|at\.gov|autoridade tributaria|autoridade tributária/.test(hay))kind='tax';
+    else if(/cliente|adquirente|faturado a|prestacao de servicos|prestação de serviços/.test(hay)&&/fatura|ft\b|recibo/.test(hay))kind='sale';
+    else kind='expense';
+  }
+  if(known && (kind==='expense'||kind==='sale'))return {kind:known.kind||kind,account:known.account,reason:'Histórico desta entidade',confidence:'Alta — histórico confirmado'};
+  if(kind==='sale'){
+    const account=/mercadoria|produto|artigo|venda de/.test(hay)?'71':'72';return {kind,account,reason:account==='71'?'Venda de bens identificada':'Prestação de serviços identificada',confidence:'Média — conteúdo do documento'};
+  }
+  if(kind==='bank') return {kind,account:'221',reason:'Movimento bancário; reveja a contrapartida',confidence:'Baixa — confirmar contrapartida'};
+  if(kind==='tax'){
+    const account=/seguranca social|segurança social|tsu/.test(hay)?'635':'68';return {kind,account,reason:account==='635'?'Contribuição / encargo de Segurança Social':'Imposto ou taxa identificada',confidence:'Média — conteúdo do documento'};
+  }
+  const rule=CLASSIFICATION_RULES.find(r=>r.terms.some(t=>hay.includes(t)));
+  return rule?{kind:'expense',account:rule.account,reason:rule.label,confidence:'Média — palavras-chave do documento'}:{kind:'expense',account:'62',reason:'Fornecimentos e serviços externos (regra geral)',confidence:'Baixa — reveja a rubrica'};
+}
+async function getPdfJs(){
+  if(!pdfjsPromise){
+    pdfjsPromise=import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs').then(lib=>{
+      lib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';return lib;
+    });
+  }
+  return pdfjsPromise;
+}
+async function extractPdfText(file){
+  const lib=await getPdfJs(); const data=new Uint8Array(await file.arrayBuffer());
+  const pdf=await lib.getDocument({data}).promise; let out=''; const pages=Math.min(pdf.numPages,12);
+  for(let i=1;i<=pages;i++){const page=await pdf.getPage(i);const content=await page.getTextContent();out+=content.items.map(it=>it.str).join(' ')+'\n';}
+  return out;
+}
+async function analyzeAutomaticDocument(){
+  const input=$('autoFile'),file=input.files?.[0];let text=$('autoText').value.trim();
+  $('autoStatus').className='alert info';$('autoStatus').textContent='A analisar documento e a preparar a proposta…';
+  try{
+    if(file && fileExtension(file)==='pdf' && !text){text=await extractPdfText(file);$('autoText').value=text;}
+    else if(file && ['txt','csv'].includes(fileExtension(file)) && !text){text=await file.text();$('autoText').value=text;}
+  }catch(err){
+    $('autoStatus').className='alert warning';$('autoStatus').textContent='Não foi possível ler automaticamente este PDF. Pode colar o texto ou preencher a proposta manualmente.';
+  }
+  const requestedType=$('autoType').value;
+  const preKind=requestedType==='auto'?'expense':requestedType;
+  const entity=extractCounterparty(text,preKind),nif=extractNif(text),proposal=classifyDocument({text,requestedType,counterparty:entity,nif});
+  const amounts=extractAmounts(text),date=extractDate(text),ref=extractReference(text);
+  const desc=normalizeSpaces(lineValue(text,['descri[cç][aã]o','designa[cç][aã]o','servi[cç]o','produto'])||`${proposal.reason}${entity?` — ${entity}`:''}`);
+  autoDraft={text,file,kind:proposal.kind,account:proposal.account,entity,nif,date,ref,description:desc||'Documento analisado',base:amounts.base,vatRate:amounts.vatRate,confidence:proposal.confidence,reason:proposal.reason};
+  $('autoDate').value=date;$('autoRef').value=ref;$('autoEntity').value=entity;$('autoNif').value=nif;$('autoDescription').value=autoDraft.description;
+  $('autoKind').value=proposal.kind;$('autoAccount').value=proposal.account;$('autoBase').value=amounts.base||'';$('autoVat').value=String(amounts.vatRate||0);$('autoConfidence').value=proposal.confidence;
+  setAutoPaymentForKind(proposal.kind);
+  $('autoFields').style.display='block';renderAutoPreview();
+  const extractInfo=[];if(file)extractInfo.push(`Ficheiro: ${file.name}`);if(text)extractInfo.push(`Texto analisado: ${text.length} caracteres`);if(!text)extractInfo.push('Sem texto extraído: complete os campos abaixo');
+  $('autoStatus').className='alert success';$('autoStatus').innerHTML=`<b>Proposta criada.</b> ${escapeHTML(proposal.reason)}<br><span class="confidence ${proposal.confidence.startsWith('Alta')?'high':proposal.confidence.startsWith('Baixa')?'low':''}">${escapeHTML(proposal.confidence)}</span><div class="auto-note">${escapeHTML(extractInfo.join(' · '))}</div>`;
+}
+function setAutoPaymentForKind(kind){
+  const sel=$('autoPayment'); if(kind==='sale')sel.value='211'; else if(kind==='bank')sel.value='12'; else if(kind==='tax')sel.value='245'; else sel.value='221';
+}
+function autoLinesFromFields(){
+  const kind=$('autoKind').value,account=$('autoAccount').value,payment=$('autoPayment').value,base=num($('autoBase').value),vat=num($('autoVat').value);
+  if(kind==='sale')return makeSale({date:$('autoDate').value,ref:$('autoRef').value,description:$('autoDescription').value,revenue:ACCOUNT_MAP[account]?.type==='revenue'?account:'72',payment,base,vatRate:vat}).lines;
+  if(kind==='bank'){const direction=payment==='12'||payment==='11'?'in':'out';const counterpart=payment==='12'||payment==='11'?account:payment;return makeBank({date:$('autoDate').value,ref:$('autoRef').value,description:$('autoDescription').value,direction,bank:payment==='11'?'11':'12',counterpart,amount:base}).lines;}
+  if(kind==='tax'){
+    if(account==='635')return [{account:'635',debit:base},{account:payment==='12'||payment==='11'?'12':'245',credit:base}];
+    return [{account:'68',debit:base},{account:payment==='12'||payment==='11'?'12':payment,credit:base}];
+  }
+  return makeExpense({date:$('autoDate').value,ref:$('autoRef').value,description:$('autoDescription').value,expense:account,payment,base,vatRate:vat}).lines;
+}
+function renderAutoPreview(){
+  const base=num($('autoBase').value);if(base<=0){$('autoPreview').innerHTML='<b>Falta o valor.</b> Introduza o valor sem IVA para visualizar o lançamento automático.';return;}
+  const lines=autoLinesFromFields(); const l=lines.map(x=>`${x.debit?'Débito':'Crédito'} — ${escapeHTML(accountLabel(x.account))}: <b>${money(x.debit||x.credit)}</b>`).join('<br>');
+  $('autoPreview').innerHTML=`<b>Lançamento que será criado</b><br>${l}`;
+}
+function renderAutoRules(){
+  const rules=Object.values(state.counterpartyRules||{}).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||''))).slice(0,8);
+  $('autoRulesList').innerHTML=rules.length?rules.map(r=>`<div class="rule-row"><div><b>${escapeHTML(r.counterparty||r.nif||'Entidade')}</b><div class="muted" style="font-size:11px;margin-top:3px">${r.nif?`NIF ${escapeHTML(r.nif)} · `:''}${escapeHTML(r.description||'Classificação confirmada')}</div></div><div style="text-align:right"><b>${escapeHTML(accountLabel(r.account))}</b><div class="muted" style="font-size:11px;margin-top:3px">${r.kind==='sale'?'Venda':'Despesa'}</div></div></div>`).join(''):'<div class="empty" style="padding:16px">Ainda não há classificações guardadas. Ao criar um lançamento com entidade e rubrica, a app passa a sugeri-la nos documentos seguintes.</div>';
+}
+function createAutomaticEntry(){
+  const kind=$('autoKind').value,account=$('autoAccount').value,payment=$('autoPayment').value,base=num($('autoBase').value),vat=num($('autoVat').value),date=$('autoDate').value,ref=$('autoRef').value,description=$('autoDescription').value,entity=$('autoEntity').value,nif=$('autoNif').value;
+  if(!date||!description||base<=0){toast('Complete data, descrição e valor antes de criar o lançamento.');return;}
+  const finalize=(attachmentId)=>{
+    const meta={date,ref,description,attachmentId,counterparty:entity,nif,classification:$('autoConfidence').value,source:'automatic'};let entry;
+    if(kind==='sale')entry=makeSale({...meta,revenue:ACCOUNT_MAP[account]?.type==='revenue'?account:'72',payment,base,vatRate:vat});
+    else if(kind==='bank'){const direction=payment==='12'||payment==='11'?'in':'out';const counterpart=payment==='12'||payment==='11'?account:payment;entry=makeBank({...meta,direction,bank:payment==='11'?'11':'12',counterpart,amount:base});}
+    else if(kind==='tax'){const lines=autoLinesFromFields();entry={...meta,origin:'Impostos / contribuições',rubric:accountLabel(account),lines};}
+    else entry=makeExpense({...meta,expense:ACCOUNT_MAP[account]?.type==='expense'||account==='43'?account:'62',payment,base,vatRate:vat});
+    if(addEntry(entry)){
+      $('autoForm').reset();$('autoFile').value='';$('autoText').value='';$('autoFields').style.display='none';$('autoStatus').className='empty';$('autoStatus').textContent='Documento registado. Anexe o próximo documento ou introduza texto para nova análise.';autoDraft=null;setFormDates();fillAccountSelects();
+    }
+  };
+  const file=$('autoFile').files?.[0];
+  if(file){attachmentFromInput('autoFile',kind==='sale'?'Venda':kind==='expense'?'Despesa':kind==='bank'?'Banco':'Impostos e contribuições',ref,date).then(r=>{if(r.ok)finalize(r.id);});}else finalize(null);
+}
+
+function parseCSV(text){
+  const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim());
+  if(!lines.length)return[];
+  const delimiter=(lines[0].match(/;/g)||[]).length>=(lines[0].match(/,/g)||[]).length?';':',';
+  function row(line){let out=[],cell='',quoted=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(quoted&&line[i+1]==='"'){cell+='"';i++;}else quoted=!quoted;}else if(ch===delimiter&&!quoted){out.push(cell.trim());cell='';}else cell+=ch;}out.push(cell.trim());return out;}
+  const head=row(lines[0]).map(h=>norm(h));
+  return lines.slice(1).map(line=>{const vals=row(line);let obj={};head.forEach((h,i)=>obj[h]=vals[i]||'');return obj;});
+}
+function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');}
+function findVal(row,names){for(const n of names){const hit=Object.keys(row).find(k=>k===norm(n));if(hit!==undefined)return row[hit];}return'';}
+function parseAmount(v){return Number(String(v||'').replace(/\s/g,'').replace(/\./g,'').replace(',','.'))||0;}
+function paymentAccount(v,fallback='12'){const x=norm(v);if(x==='11'||x.includes('caixa'))return'11';if(x==='211'||x.includes('cliente'))return'211';if(x==='221'||x.includes('fornecedor'))return'221';if(x==='12'||x.includes('banco'))return'12';return ACCOUNT_MAP[String(v).trim()]?String(v).trim():fallback;}
+function importCSV(file){
+  const reader=new FileReader(); reader.onload=()=>{
+    let records;try{records=parseCSV(reader.result);}catch{toast('Não foi possível ler o CSV.');return;}
+    let created=0,skipped=0;
+    records.forEach(r=>{
+      const type=norm(findVal(r,['tipo'])),date=findVal(r,['data'])||today,desc=findVal(r,['descricao','descrição'])||'Movimento importado',
+      base=parseAmount(findVal(r,['valor_sem_iva','valorsemiva','valor','montante'])),rate=parseAmount(findVal(r,['taxa_iva','taxaiva','iva']))||0,
+      pay=paymentAccount(findVal(r,['conta_pagamento','contapagamento','pagamento'])),accRaw=findVal(r,['conta_gasto_ou_rendimento','contagastoourendimento','conta','contrapartida']),
+      ref=findVal(r,['documento','referencia','referência','ref']),counterparty=findVal(r,['entidade','cliente','fornecedor']),nif=findVal(r,['nif','nifentidade']);
+      if(base<=0){skipped++;return;}
+      let entry;
+      const proposal=classifyDocument({text:desc,requestedType:type==='venda'||type==='servico'?'sale':type==='despesa'?'expense':'auto',counterparty,nif});
+      if(type==='venda'||type==='servico'||type==='servico prestado') entry=makeSale({date,ref,description:desc,revenue:ACCOUNT_MAP[accRaw]?.type==='revenue'?accRaw:proposal.account==='72'?'72':'71',payment:pay,base,vatRate:rate,counterparty,nif,classification:proposal.reason,source:'automatic'});
+      else if(type==='despesa') entry=makeExpense({date,ref,description:desc,expense:ACCOUNT_MAP[accRaw]?.type==='expense'||accRaw==='43'?accRaw:proposal.account,payment:pay,base,vatRate:rate,counterparty,nif,classification:proposal.reason,source:'automatic'});
+      else if(type==='bancoentrada') entry=makeBank({date,ref,description:desc,direction:'in',bank:pay==='11'?'11':'12',counterpart:ACCOUNT_MAP[accRaw]?accRaw:'211',amount:base});
+      else if(type==='bancosaida') entry=makeBank({date,ref,description:desc,direction:'out',bank:pay==='11'?'11':'12',counterpart:ACCOUNT_MAP[accRaw]?accRaw:'221',amount:base});
+      else {skipped++;return;}
+      if(addEntry({...entry}))created++;else skipped++;
+    });
+    $('importResult').innerHTML=`<div class="alert ${created?'success':'warning'}"><b>Importação concluída:</b> ${created} movimento(s) criado(s)${skipped?` · ${skipped} linha(s) ignorada(s)`:''}.</div>`;
+  };reader.readAsText(file,'utf-8');
+}
+function downloadTemplate(){
+  const text='data;tipo;descricao;valor_sem_iva;taxa_iva;conta_pagamento;conta_gasto_ou_rendimento;documento;entidade;nif\n2026-01-15;venda;Prestação de serviço;1000,00;23;banco;72;FT 2026/001;Cliente Exemplo;509000000\n2026-01-17;despesa;Telecomunicações;120,00;23;banco;;FR 123;Operador Telecom;501000000\n2026-01-20;banco_saida;Pagamento a fornecedor;147,60;0;banco;221;TRF 001;Fornecedor Exemplo;502000000\n';
+  downloadFile('modelo_importacao_conta360.csv',text,'text/csv;charset=utf-8');
+}
+function loadDemo(){
+  if(state.entries.length && !confirm('Carregar o exemplo substitui os dados atuais. Continuar?'))return;
+  state=blankState();state.profile={...state.profile,companyName:'Empresa Exemplo, Lda.',nif:'509000000',year:defaultYear};
+  const y=defaultYear;
+  addEntry({date:`${y}-01-01`,origin:'Manual',ref:'Abertura',description:'Capital inicial depositado em banco',lines:[{account:'12',debit:10000},{account:'51',credit:10000}]});
+  addEntry(makeSale({date:`${y}-02-03`,ref:'FT 2026/001',description:'Prestação de serviços',revenue:'72',payment:'12',base:3500,vatRate:23}));
+  addEntry(makeExpense({date:`${y}-02-05`,ref:'FR 003',description:'Serviços de comunicação',expense:'62',payment:'12',base:180,vatRate:23}));
+  addEntry({date:`${y}-02-08`,origin:'Impostos / contribuições',ref:'SS 02/2026',description:'Encargo patronal de Segurança Social',lines:[{account:'635',debit:420},{account:'245',credit:420}]});
+  addEntry({date:`${y}-02-15`,origin:'Impostos / contribuições',ref:'SS 02/2026',description:'Pagamento à Segurança Social',lines:[{account:'245',debit:420},{account:'12',credit:420}]});
+  fillAccountSelects();renderAll();toast('Exemplo carregado.');
+}
+function bindEvents(){
+  document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+  document.querySelectorAll('#entryTabs .subtab').forEach(b=>b.addEventListener('click',()=>switchEntryTab(b.dataset.entryTab)));
+  $('autoAnalyzeBtn').addEventListener('click',analyzeAutomaticDocument);
+  $('autoForm').addEventListener('submit',e=>{e.preventDefault();createAutomaticEntry();});
+  $('autoLearnBtn').addEventListener('click',()=>{const entity=$('autoEntity').value,nif=$('autoNif').value,account=$('autoAccount').value,kind=$('autoKind').value;if(!entity&&!cleanNif(nif)){toast('Indique a entidade ou o NIF para guardar a regra.');return;}learnCounterparty({counterparty:entity,nif,account,kind,description:$('autoDescription').value});renderAutoRules();toast('Classificação guardada para esta entidade.');});
+  ['autoKind','autoAccount','autoPayment','autoBase','autoVat','autoDate','autoRef','autoDescription'].forEach(id=>$(id).addEventListener('input',renderAutoPreview));
+  $('autoKind').addEventListener('change',()=>{setAutoPaymentForKind($('autoKind').value);renderAutoPreview();});
+  $('companyForm').addEventListener('submit',e=>{e.preventDefault();state.profile.companyName=$('companyName').value.trim();state.profile.nif=$('companyNif').value.trim();state.profile.year=Number($('companyYear').value)||defaultYear;state.profile.currency='EUR';renderAll();toast('Identificação atualizada.');});
+  $('periodFrom').addEventListener('change',e=>{state.profile.from=e.target.value;renderAll();});
+  $('periodTo').addEventListener('change',e=>{state.profile.to=e.target.value;renderAll();});
+  $('saleForm').addEventListener('submit',async e=>{e.preventDefault();const attachment=await attachmentFromInput('saleFile','Venda',$('saleRef').value,$('saleDate').value);if(!attachment.ok)return;if(addEntry(makeSale({date:$('saleDate').value,ref:$('saleRef').value,description:$('saleDesc').value,revenue:$('saleRevenue').value,payment:$('salePayment').value,base:num($('saleBase').value),vatRate:num($('saleVat').value),attachmentId:attachment.id,counterparty:$('saleCounterparty').value,nif:$('saleNif').value,source:'manual'}))){$('saleForm').reset();$('saleDate').value=today;updateSalePreview();}});
+  $('expenseForm').addEventListener('submit',async e=>{e.preventDefault();const attachment=await attachmentFromInput('expenseFile','Despesa',$('expenseRef').value,$('expenseDate').value);if(!attachment.ok)return;if(addEntry(makeExpense({date:$('expenseDate').value,ref:$('expenseRef').value,description:$('expenseDesc').value,expense:$('expenseAccount').value,payment:$('expensePayment').value,base:num($('expenseBase').value),vatRate:num($('expenseVat').value),attachmentId:attachment.id,counterparty:$('expenseCounterparty').value,nif:$('expenseNif').value,source:'manual'}))){$('expenseForm').reset();$('expenseDate').value=today;updateExpensePreview();}});
+  $('bankForm').addEventListener('submit',async e=>{e.preventDefault();const attachment=await attachmentFromInput('bankFile','Banco',$('bankRef').value,$('bankDate').value);if(!attachment.ok)return;if(addEntry(makeBank({date:$('bankDate').value,ref:$('bankRef').value,description:$('bankDesc').value,direction:$('bankDirection').value,bank:$('bankAccount').value,counterpart:$('bankCounterpart').value,amount:num($('bankAmount').value),attachmentId:attachment.id}))){$('bankForm').reset();$('bankDate').value=today;fillAccountSelects();updateBankPreview();}});
+  $('manualForm').addEventListener('submit',async e=>{e.preventDefault();const attachment=await attachmentFromInput('manualFile','Outro',$('manualRef').value,$('manualDate').value);if(!attachment.ok)return;if(addEntry({date:$('manualDate').value,origin:'Manual',ref:$('manualRef').value,description:$('manualDesc').value,attachmentId:attachment.id,lines:[{account:$('manualDebit').value,debit:num($('manualAmount').value)},{account:$('manualCredit').value,credit:num($('manualAmount').value)}]})){$('manualForm').reset();$('manualDate').value=today;fillAccountSelects();}});
+  ['saleBase','saleVat','saleRevenue','salePayment'].forEach(id=>$(id).addEventListener('input',updateSalePreview));
+  ['expenseBase','expenseVat','expenseAccount','expensePayment'].forEach(id=>$(id).addEventListener('input',updateExpensePreview));
+  ['bankAmount','bankDirection','bankAccount','bankCounterpart'].forEach(id=>$(id).addEventListener('input',updateBankPreview));
+  $('attachmentForm').addEventListener('submit',async e=>{e.preventDefault();const f=$('attachmentFile').files[0];if(!f){toast('Selecione um ficheiro.');return;}const attachment=await attachmentFromInput('attachmentFile',$('attachmentType').value,$('attachmentNote').value,$('attachmentDate').value);if(!attachment.ok)return;$('attachmentForm').reset();$('attachmentDate').value=today;renderAttachments();toast('Documento anexado.');});
+  $('socialForm').addEventListener('submit',async e=>{e.preventDefault();const amount=num($('socialAmount').value), action=$('socialAction').value, date=$('socialDate').value,ref=$('socialRef').value,desc=$('socialDesc').value;const attachment=await attachmentFromInput('socialFile','Impostos e contribuições',ref,date);if(!attachment.ok)return;const lines=action==='charge'?[{account:'635',debit:amount},{account:'245',credit:amount}]:[{account:'245',debit:amount},{account:'12',credit:amount}];if(addEntry({date,origin:'Impostos / contribuições',ref,description:desc,lines,attachmentId:attachment.id})){$('socialForm').reset();$('socialDate').value=today;$('socialDesc').value='Segurança Social';}});
+  $('settleVatBtn').addEventListener('click',()=>{const b=calculateBalances(),out=Math.max(0,accountValue('2433','credit',b)),inn=Math.max(0,accountValue('2432','debit',b)),net=round(out-inn),date=$('vatDate').value||today;if(out===0&&inn===0){toast('Não existem movimentos de IVA para apurar.');return;}const lines=[];if(out)lines.push({account:'2433',debit:out});if(inn)lines.push({account:'2432',credit:inn});if(net>0)lines.push({account:'2436',credit:net});if(net<0)lines.push({account:'2437',debit:Math.abs(net)});addEntry({date,origin:'Impostos / contribuições',ref:$('vatRef').value||'Apuramento IVA',description:'Apuramento de IVA',lines});});
+  $('demoBtn').addEventListener('click',loadDemo); $('clearEntriesBtn').addEventListener('click',()=>{if(confirm('Eliminar todos os lançamentos e anexos desta sessão?')){state=blankState();fillAccountSelects();renderAll();toast('Dados da sessão eliminados.');}});
+  $('exportJsonBtn').addEventListener('click',exportData); $('importJsonFile').addEventListener('change',e=>{if(e.target.files[0])importJSON(e.target.files[0]);e.target.value='';});
+  $('csvFile').addEventListener('change',e=>{if(e.target.files[0])importCSV(e.target.files[0]);e.target.value='';});$('templateCsvBtn').addEventListener('click',downloadTemplate);
+  document.querySelectorAll('[data-print]').forEach(b=>b.addEventListener('click',()=>window.print()));
+}
+function init(){
+  setFormDates();fillAccountSelects();
+  $('companyName').value=state.profile.companyName;$('companyNif').value=state.profile.nif;$('companyYear').value=state.profile.year;
+  bindEvents();renderAll();
+}
+init();
+</script>
+</body>
+</html>
