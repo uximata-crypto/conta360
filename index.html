@@ -105,6 +105,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
                 <div class="field"><label>CAE principal</label><input id="companyCaePrimary" inputmode="numeric" placeholder="Ex.: 70220"></div>
                 <div class="field"><label>CAE secundário</label><input id="companyCaeSecondary" placeholder="Ex.: 62010, 69200"></div>
                 <div class="field"><label>Data de constituição / matrícula</label><input id="companyRegistryDate" type="date"></div>
+                <div class="field"><label>Capital social (€)</label><input id="companyShareCapital" inputmode="decimal" placeholder="Ex.: 5.000,00"></div>
                 <div class="field"><label>Exercício</label><input id="companyYear" type="number" min="2000" max="2100"></div>
                 <div class="field"><label>Moeda</label><select id="companyCurrency"><option value="EUR">Euro (€)</option></select></div>
               </div>
@@ -144,7 +145,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
                 <div class="field"><label>Documentos</label><input id="autoFile" type="file" multiple accept=".pdf,application/pdf,image/*,.csv,.txt,.xlsx,.xls,.doc,.docx"></div>
                 <div class="field span-2"><label>Texto do documento (opcional ou para conferência)</label><textarea id="autoText" class="auto-text" placeholder="Pode carregar vários documentos de uma vez. Para um documento sem texto extraível, cole aqui os elementos principais ou reveja a proposta depois da análise."></textarea></div>
               </div>
-              <div class="form-actions"><button class="btn primary" id="autoAnalyzeBtn" type="button">Carregar, classificar e criar automaticamente</button><button class="btn" id="autoLoadAttachmentsBtn" type="button">Classificar e criar a partir dos anexos</button><button class="btn danger" id="autoRebuildAllBtn" type="button">Corrigir DR e recriar lançamentos</button><span class="helper">Selecione vários documentos. Nos ficheiros CSV, a aplicação lê cada linha e cria um lançamento por linha válida. Em PDFs, cria um lançamento por documento. A rubrica é proposta por conteúdo, entidade, NIF, nome do ficheiro e histórico. Documentos de suporte, certidões, declarações e relatórios sem evidência de operação ficam apenas anexados; não geram gastos ou rendimentos indevidos.</span></div>
+              <div class="form-actions"><button class="btn primary" id="autoAnalyzeBtn" type="button">Carregar, classificar e criar automaticamente</button><button class="btn" id="autoLoadAttachmentsBtn" type="button">Classificar e criar a partir dos anexos</button><button class="btn danger" id="autoRebuildAllBtn" type="button">Corrigir DR e recriar lançamentos</button><span class="helper">Selecione vários documentos. Nos ficheiros CSV de faturas/movimentos, a aplicação lê cada linha e cria um lançamento por linha válida. Nos balancetes CSV, importa as contas e saldos de uma só vez, incluindo capital e ativos. Em PDFs, cria um lançamento por documento. A rubrica é proposta por conteúdo, entidade, NIF, nome do ficheiro e histórico. Documentos de suporte, certidões, declarações e relatórios sem evidência de operação ficam apenas anexados; não geram gastos ou rendimentos indevidos.</span></div>
               <div id="autoBatchStatus" class="empty auto-batch-status">Selecione um ou mais documentos e escolha <b>Carregar, classificar e criar automaticamente</b>. Apenas documentos com evidência de operação contabilizável serão registados automaticamente; os restantes ficam anexados para consulta.</div>
               <div id="autoBatchList" class="auto-batch-list"></div>
               <div id="autoBatchActions" class="form-actions auto-batch-actions" style="display:none"><button class="btn primary" id="autoCreateSelectedBtn" type="button">Criar lançamentos classificados</button><button class="btn" id="autoSelectReadyBtn" type="button">Selecionar documentos com valor</button></div>
@@ -299,12 +300,13 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
       </section>
 
       <section class="page" id="page-income">
-        <div class="page-intro"><div><h3>Demonstração de resultados</h3><p>Modelo de demonstração de resultados por naturezas, apresentado de forma alinhada com o SNC.</p></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="fixIncomeBtn" type="button">Corrigir receitas e atualizar DR</button><button class="btn primary" data-print="income">Imprimir / guardar PDF</button></div></div>
+        <div class="page-intro"><div><h3>Demonstração de resultados</h3><p>Modelo de demonstração de resultados por naturezas, com deteção e contabilização automática de vendas e serviços prestados.</p></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="fixIncomeBtn" type="button">Corrigir vendas e atualizar DR</button><button class="btn primary" id="syncReportsBtn" type="button">Sincronizar vendas e período</button><button class="btn primary" data-print="income">Imprimir / guardar PDF</button></div></div>
         <div class="report-card" id="incomeReport"></div>
       </section>
 
       <section class="page" id="page-balance">
-        <div class="page-intro"><div><h3>Balanço</h3><p>Ativo, capital próprio e passivo apresentados num modelo alinhado com o balanço SNC simplificado.</p></div><button class="btn primary no-print" data-print="balance">Imprimir / guardar PDF</button></div>
+        <div class="page-intro"><div><h3>Balanço</h3><p>Ativo, capital próprio e passivo apresentados num modelo alinhado com o balanço SNC simplificado.</p></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn" for="balanceCsvFile">Carregar balancete / saldos CSV</label><input id="balanceCsvFile" type="file" accept=".csv,text/csv" hidden><button class="btn" id="syncBalanceBtn" type="button">Sincronizar capital e saldos</button><button class="btn primary" data-print="balance">Imprimir / guardar PDF</button></div></div>
+        <div class="alert info no-print" style="margin:0 0 16px"><b>Para carregar capital, ativos e passivos:</b> anexe aqui o balancete/saldos em CSV com as colunas <em>Conta</em>, <em>Saldo devedor</em> e <em>Saldo credor</em> (ou <em>Débito</em> e <em>Crédito</em>). A app preserva os códigos SNC, incluindo 51/511 para capital e as contas de ativo das classes 1, 3 e 4.</div>
         <div class="report-card" id="balanceReport"></div>
       </section>
 
@@ -398,12 +400,53 @@ const ACCOUNTS = [
   {code:'78', name:'Outros rendimentos e ganhos', type:'revenue'}
 ];
 const ACCOUNT_MAP = Object.fromEntries(ACCOUNTS.map(a=>[a.code,a]));
+
+// Mapa de apoio SNC para contas importadas de balancetes/razões.
+// Mantém o código original do ficheiro e atribui-lhe a natureza correta para Balanço, DR e Balancete.
+const SNC_ACCOUNT_PREFIXES = [
+  ['11','Caixa','asset'],['12','Depósitos à ordem / Banco','asset'],
+  ['21','Clientes c/c','asset'],['22','Fornecedores c/c','liability'],['23','Pessoal','liability'],
+  ['24','Estado e outros entes públicos','liability'],['25','Financiamentos obtidos','liability'],
+  ['26','Acionistas / sócios','liability'],['27','Outras contas a receber e a pagar','asset'],['28','Diferimentos e outros credores/devedores','asset'],
+  ['31','Compras','asset'],['32','Mercadorias','asset'],['33','Produtos acabados e intermédios','asset'],['34','Subprodutos, desperdícios, resíduos e refugos','asset'],
+  ['35','Produtos e trabalhos em curso','asset'],['36','Matérias-primas, subsidiárias e de consumo','asset'],['37','Adiantamentos por conta de compras','asset'],
+  ['38','Regularização de existências','asset'],['39','Ajustamentos de inventários','asset'],
+  ['41','Investimentos financeiros','asset'],['42','Propriedades de investimento','asset'],['43','Ativos fixos tangíveis','asset'],
+  ['44','Ativos intangíveis','asset'],['45','Ativos biológicos','asset'],['46','Participações financeiras','asset'],
+  ['47','Acionistas / sócios','asset'],['48','Ativos por impostos diferidos','asset'],['49','Outras contas a receber','asset'],
+  ['51','Capital','equity'],['52','Ações (quotas) próprias','equity'],['53','Outros instrumentos de capital próprio','equity'],
+  ['54','Prémios de emissão','equity'],['55','Reservas','equity'],['56','Resultados transitados','equity'],
+  ['57','Ajustamentos em ativos financeiros','equity'],['58','Excedentes de revalorização e outras variações no capital próprio','equity'],['59','Outras variações no capital próprio','equity'],
+  ['61','Custo das mercadorias vendidas e matérias consumidas','expense'],['62','Fornecimentos e serviços externos','expense'],
+  ['63','Gastos com o pessoal','expense'],['64','Gastos de depreciação e de amortização','expense'],
+  ['65','Perdas por imparidade','expense'],['66','Perdas por reduções de justo valor','expense'],
+  ['67','Provisões do período','expense'],['68','Outros gastos e perdas','expense'],['69','Gastos e perdas de financiamento','expense'],
+  ['71','Vendas','revenue'],['72','Prestações de serviços','revenue'],['73','Variação nos inventários da produção','revenue'],
+  ['74','Trabalhos para a própria entidade','revenue'],['75','Subsídios à exploração','revenue'],['76','Reversões','revenue'],
+  ['77','Ganhos e rendimentos de financiamento','revenue'],['78','Outros rendimentos e ganhos','revenue'],['79','Juros e outros rendimentos','revenue'],
+  ['81','Imposto sobre o rendimento do período','expense']
+];
+function normalizedAccountCode(code=''){ return String(code||'').trim().replace(/\s+/g,''); }
+function accountDigits(code=''){ return normalizedAccountCode(code).replace(/[^0-9]/g,''); }
+function inferredAccountDefinition(code){
+  const raw=normalizedAccountCode(code),digits=accountDigits(raw);
+  const exact=ACCOUNT_MAP[raw]; if(exact)return exact;
+  const item=SNC_ACCOUNT_PREFIXES.filter(([prefix])=>digits.startsWith(prefix)).sort((a,b)=>b[0].length-a[0].length)[0];
+  if(!item)return {code:raw||'—',name:'Conta não classificada',type:'other'};
+  const [prefix,name,type]=item;
+  return {code:raw,name:digits===prefix?name:`${name} · ${raw}`,type,parent:prefix};
+}
+function isSNCAccountCode(code=''){
+  const digits=accountDigits(code);
+  return /^[1-8]\d{0,7}$/.test(digits) && SNC_ACCOUNT_PREFIXES.some(([prefix])=>digits.startsWith(prefix));
+}
+
 const today = new Date().toISOString().slice(0,10);
 const defaultYear = new Date().getFullYear();
 
 function blankState(){
   return {
-    profile:{companyName:'',nif:'',address:'',postalCode:'',locality:'',caePrimary:'',caeSecondary:'',registryDate:'',year:defaultYear,currency:'EUR',from:`${defaultYear}-01-01`,to:`${defaultYear}-12-31`},
+    profile:{companyName:'',nif:'',address:'',postalCode:'',locality:'',caePrimary:'',caeSecondary:'',registryDate:'',shareCapital:0,year:defaultYear,currency:'EUR',from:`${defaultYear}-01-01`,to:`${defaultYear}-12-31`},
     entries:[],attachments:[],counterpartyRules:{},subaccounts:{},batchQueue:[]
   };
 }
@@ -418,7 +461,8 @@ const uid = ()=>`${Date.now().toString(36)}${Math.random().toString(36).slice(2,
 const escapeHTML = (s='')=>String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtDate = (d)=> d ? new Intl.DateTimeFormat('pt-PT').format(new Date(`${d}T12:00:00`)) : '—';
 function accountDefinition(code){
-  return ACCOUNT_MAP[code] || state?.subaccounts?.[code] || {code:String(code),name:'Conta não classificada',type:'other'};
+  const key=normalizedAccountCode(code);
+  return ACCOUNT_MAP[key] || state?.subaccounts?.[key] || inferredAccountDefinition(key);
 }
 function accountLabel(code){
   const a=accountDefinition(code); return `${code} — ${a.name}`;
@@ -544,13 +588,20 @@ function periodEntries(){
   const {from,to}=getPeriod();
   return state.entries.filter(e=>(!from||e.date>=from)&&(!to||e.date<=to));
 }
+// A DR uses movements inside the selected period. A balance sheet uses cumulative balances up to the selected end date.
+function closingEntries(){
+  const {to}=getPeriod();
+  return state.entries.filter(e=>!to||e.date<=to);
+}
+function calculateClosingBalances(){ return calculateBalances(closingEntries()); }
 function calculateBalances(entries=periodEntries()){
   const map={};
   ACCOUNTS.forEach(a=>map[a.code]={...a,debit:0,credit:0});
   Object.values(state.subaccounts||{}).forEach(a=>map[a.code]={...a,debit:0,credit:0});
   entries.forEach(e=>e.lines.forEach(l=>{
-    if(!map[l.account]) { const a=accountDefinition(l.account); map[l.account]={...a,debit:0,credit:0}; }
-    map[l.account].debit+=Number(l.debit||0); map[l.account].credit+=Number(l.credit||0);
+    const code=normalizedAccountCode(l.account);
+    if(!map[code]) { const a=accountDefinition(code); map[code]={...a,code,debit:0,credit:0}; }
+    map[code].debit+=Number(l.debit||0); map[code].credit+=Number(l.credit||0);
   }));
   return Object.values(map).map(a=>({...a,debit:round(a.debit),credit:round(a.credit),balanceDebit:round(Math.max(0,a.debit-a.credit)),balanceCredit:round(Math.max(0,a.credit-a.debit))})).filter(a=>a.debit||a.credit);
 }
@@ -582,7 +633,7 @@ function drGroupsForRoots(roots,type,balances=calculateBalances()){
 }
 function drAmountForPrefixes(prefixes, kind, balances=calculateBalances()){
   return round(balances
-    .filter(a=>prefixes.some(p=>String(a.code)===String(p)||String(a.code).startsWith(String(p))))
+    .filter(a=>prefixes.some(p=>accountDigits(a.code)===String(p)||accountDigits(a.code).startsWith(String(p))))
     .reduce((sum,a)=>sum+(kind==='revenue'?(a.credit-a.debit):(a.debit-a.credit)),0));
 }
 function drData(balances=calculateBalances()){
@@ -622,28 +673,33 @@ function drData(balances=calculateBalances()){
   const result=round(ebt-lines.incomeTax);
   return {revenueGroups,expenseGroups,revenue,expenses,result,lines,ebitda,ebit,ebt};
 }
-function balanceSections(balances=calculateBalances()){
-  const by=(prefixes,kind)=>round(balances.filter(a=>prefixes.some(p=>String(a.code)===String(p)||String(a.code).startsWith(String(p)))).reduce((s,a)=>s+(kind==='asset'?a.balanceDebit:a.balanceCredit),0));
-  const dr=drData(balances);
+function balanceSections(balances=calculateClosingBalances()){
+  const by=(prefixes,kind)=>round(balances.filter(a=>prefixes.some(p=>accountDigits(a.code)===String(p)||accountDigits(a.code).startsWith(String(p))))
+    .reduce((s,a)=>s+(kind==='asset'?a.balanceDebit:a.balanceCredit),0));
+  const dr=drData(calculateBalances());
+  const capitalLedger=by(['51'],'liability');
+  const declaredCapital=round(num(state.profile?.shareCapital||0));
+  const capitalDisplay=capitalLedger>0?capitalLedger:declaredCapital;
+  const capitalFromDocument=capitalLedger<=0&&declaredCapital>0;
   const assetNonCurrent=[
     {label:'Ativos fixos tangíveis', value:by(['43'],'asset')},
-    {label:'Propriedades de investimento', value:0},
-    {label:'Goodwill', value:0},
-    {label:'Ativos intangíveis', value:0},
-    {label:'Ativos biológicos', value:0},
-    {label:'Participações financeiras — método da equivalência patrimonial', value:0},
-    {label:'Acionistas / sócios', value:0},
-    {label:'Outros investimentos financeiros', value:0},
-    {label:'Ativos por impostos diferidos', value:0},
-    {label:'Outras contas a receber', value:0}
+    {label:'Propriedades de investimento', value:by(['42'],'asset')},
+    {label:'Goodwill', value:by(['441'],'asset')},
+    {label:'Ativos intangíveis', value:by(['44'],'asset')},
+    {label:'Ativos biológicos', value:by(['45'],'asset')},
+    {label:'Participações financeiras — método da equivalência patrimonial', value:by(['411','412','413'],'asset')},
+    {label:'Acionistas / sócios', value:by(['47'],'asset')},
+    {label:'Outros investimentos financeiros', value:by(['41','46'],'asset')},
+    {label:'Ativos por impostos diferidos', value:by(['48'],'asset')},
+    {label:'Outras contas a receber', value:by(['49'],'asset')}
   ];
   const assetCurrent=[
-    {label:'Inventários', value:by(['31'],'asset')},
-    {label:'Clientes', value:by(['211'],'asset')},
-    {label:'Adiantamentos a fornecedores', value:0},
-    {label:'Estado e outros entes públicos', value:by(['2437'],'asset')},
-    {label:'Acionistas / sócios', value:0},
-    {label:'Outras contas a receber', value:by(['271'],'asset')},
+    {label:'Inventários', value:by(['31','32','33','34','35','36','38','39'],'asset')},
+    {label:'Clientes', value:by(['21'],'asset')},
+    {label:'Adiantamentos a fornecedores', value:by(['37'],'asset')},
+    {label:'Estado e outros entes públicos', value:by(['24'],'asset')},
+    {label:'Acionistas / sócios', value:by(['26'],'asset')},
+    {label:'Outras contas a receber', value:by(['27','28'],'asset')},
     {label:'Diferimentos', value:0},
     {label:'Ativos financeiros detidos para negociação', value:0},
     {label:'Outros ativos financeiros', value:0},
@@ -651,32 +707,32 @@ function balanceSections(balances=calculateBalances()){
     {label:'Caixa e depósitos bancários', value:by(['11','12'],'asset')}
   ];
   const equity=[
-    {label:'Capital realizado', value:by(['51'],'liability')},
-    {label:'Ações (quotas) próprias', value:0},
-    {label:'Outros instrumentos de capital próprio', value:0},
-    {label:'Prémios de emissão', value:0},
-    {label:'Reservas legais', value:0},
-    {label:'Outras reservas', value:0},
+    {label:'Capital realizado', value:capitalDisplay, source:capitalFromDocument?'certidão/documento':'balancete/livro'},
+    {label:'Ações (quotas) próprias', value:by(['52'],'liability')},
+    {label:'Outros instrumentos de capital próprio', value:by(['53'],'liability')},
+    {label:'Prémios de emissão', value:by(['54'],'liability')},
+    {label:'Reservas legais', value:by(['551'],'liability')},
+    {label:'Outras reservas', value:by(['55'],'liability')-by(['551'],'liability')},
     {label:'Resultados transitados', value:by(['56'],'liability')},
-    {label:'Ajustamentos em ativos financeiros', value:0},
-    {label:'Excedentes de revalorização', value:0},
-    {label:'Outras variações no capital próprio', value:0},
+    {label:'Ajustamentos em ativos financeiros', value:by(['57'],'liability')},
+    {label:'Excedentes de revalorização', value:by(['58'],'liability')},
+    {label:'Outras variações no capital próprio', value:by(['59'],'liability')},
     {label:'Resultado líquido do período', value:dr.result}
   ];
   const liabilityNonCurrent=[
-    {label:'Provisões', value:0},
-    {label:'Financiamentos obtidos', value:by(['251'],'liability')},
+    {label:'Provisões', value:by(['29'],'liability')},
+    {label:'Financiamentos obtidos', value:by(['25'],'liability')},
     {label:'Responsabilidades por benefícios pós-emprego', value:0},
     {label:'Passivos por impostos diferidos', value:0},
     {label:'Outras contas a pagar', value:0}
   ];
   const liabilityCurrent=[
-    {label:'Fornecedores', value:by(['221'],'liability')},
+    {label:'Fornecedores', value:by(['22'],'liability')},
     {label:'Adiantamentos de clientes', value:0},
-    {label:'Estado e outros entes públicos', value:by(['242','2436','245'],'liability')},
-    {label:'Acionistas / sócios', value:by(['261'],'liability')},
+    {label:'Estado e outros entes públicos', value:by(['24'],'liability')},
+    {label:'Acionistas / sócios', value:by(['26'],'liability')},
     {label:'Financiamentos obtidos', value:0},
-    {label:'Outras contas a pagar', value:by(['231','278'],'liability')},
+    {label:'Outras contas a pagar', value:by(['23','27','28'],'liability')},
     {label:'Diferimentos', value:0},
     {label:'Passivos financeiros detidos para negociação', value:0},
     {label:'Outros passivos financeiros', value:0},
@@ -689,7 +745,7 @@ function balanceSections(balances=calculateBalances()){
     totalAssets:round(sum(assetNonCurrent)+sum(assetCurrent)),
     totalEquity:sum(equity), totalLiabilityNonCurrent:sum(liabilityNonCurrent), totalLiabilityCurrent:sum(liabilityCurrent),
     totalLiabilities:round(sum(liabilityNonCurrent)+sum(liabilityCurrent)),
-    totalEquityLiabilities:round(sum(equity)+sum(liabilityNonCurrent)+sum(liabilityCurrent))
+    totalEquityLiabilities:round(sum(equity)+sum(liabilityNonCurrent)+sum(liabilityCurrent)),capitalLedger,declaredCapital,capitalFromDocument
   };
 }
 function reportCompany(){
@@ -829,11 +885,16 @@ function renderIncome(){
     const cls=klass==='subtotal'?'total':(klass==='grand-total'?'grand-total':'');
     return `<tr class="${cls}"><td>${escapeHTML(code||'')}</td><td>${escapeHTML(label)}</td><td class="num">${money(value||0)}</td></tr>`;
   }).join('');
+  const allSales=(state.entries||[]).filter(e=>(e.lines||[]).some(l=>accountDefinition(l.account)?.type==='revenue'&&Number(l.credit||0)>0));
+  const inPeriod=new Set(periodEntries().map(e=>e.id));
+  const outside=allSales.filter(e=>!inPeriod.has(e.id));
+  const outsideAmount=round(outside.reduce((sum,e)=>sum+(e.lines||[]).filter(l=>accountDefinition(l.account)?.type==='revenue').reduce((s,l)=>s+Number(l.credit||0),0),0));
+  const periodHint=outside.length?`<div class="alert info no-print" style="margin-top:14px"><b>Foram identificadas vendas fora do período selecionado:</b> ${money(outsideAmount)} em ${outside.length} lançamento(s). Ajuste as datas “De” e “Até” no topo para consultar essas vendas na DR.</div>`:'';
   $('incomeReport').innerHTML=reportHeading('Demonstração de resultados por naturezas')+
-    `<table class="report-table"><thead><tr><th>Código</th><th>Rubrica</th><th class="num">Valor</th></tr></thead><tbody>${htmlRows}</tbody></table><p class="footer-note">Modelo de apresentação alinhado com a demonstração de resultados por naturezas. As rubricas são preenchidas automaticamente a partir das contas do período: 71/72 vendas e serviços prestados, 61 CMVMC, 62 FSE, 63 gastos com pessoal, 64 depreciações, 69 gastos financeiros e demais rubricas disponíveis.</p>`;
+    `<table class="report-table"><thead><tr><th>Código</th><th>Rubrica</th><th class="num">Valor</th></tr></thead><tbody>${htmlRows}</tbody></table>${periodHint}<p class="footer-note">As vendas e serviços prestados são apurados pelas contas 71 e 72. O botão “Corrigir vendas e atualizar DR” procura automaticamente anexos e lançamentos que tenham sido classificados como despesa por engano.</p>`;
 }
 function renderBalance(){
-  const s=balanceSections();
+  const s=balanceSections(calculateClosingBalances());
   const aligned=Math.abs(s.totalAssets-s.totalEquityLiabilities)<0.02;
   const build=(title,rows,totalLabel,totalValue)=>`<div class="balance-side"><h5>${title}</h5><table class="report-table"><tbody>${rows.map(r=>`<tr><td>${escapeHTML(r.label)}</td><td class="num">${money(r.value)}</td></tr>`).join('')}<tr class="total"><td>${totalLabel}</td><td class="num">${money(totalValue)}</td></tr></tbody></table></div>`;
   $('balanceReport').innerHTML=reportHeading('Balanço')+
@@ -853,7 +914,7 @@ function renderBalance(){
         ${build('PASSIVO CORRENTE',s.liabilityCurrent,'Total do passivo corrente',s.totalLiabilityCurrent)}
         <table class="report-table" style="margin-top:12px"><tbody><tr class="total"><td>Total do passivo</td><td class="num">${money(s.totalLiabilities)}</td></tr><tr class="grand-total"><td>Total do capital próprio e passivo</td><td class="num">${money(s.totalEquityLiabilities)}</td></tr></tbody></table>
       </div>
-    </div><p class="footer-note">Modelo de apresentação alinhado com a estrutura corrente de balanço. A distinção entre passivo corrente e não corrente é simplificada nesta app, sendo os financiamentos obtidos (251) apresentados no não corrente e fornecedores/impostos/outras dívidas no corrente.</p>`;
+    </div>${s.capitalFromDocument?`<div class="alert warning" style="margin-top:14px"><b>Capital social apresentado a partir do documento da empresa:</b> ${money(s.declaredCapital)}. Ainda não foi encontrado saldo credor na conta 51/511 no balancete. Para um balanço totalmente conciliado, carregue o balancete de abertura ou o balancete final com a conta 51/511.</div>`:''}<p class="footer-note">O Balanço é apurado de forma acumulada até à data final selecionada. Assim, capital social, ativos, clientes, bancos e passivos criados em anos anteriores continuam a aparecer no mapa. A distinção entre corrente e não corrente é simplificada nesta app.</p>`;
 }
 function renderTaxData(){
   const b=calculateBalances();
@@ -889,7 +950,7 @@ function renderCompanyDocumentStatus(){
   const docs=(state.attachments||[]).filter(a=>a.category==='Dados da empresa'||a.analysis?.companyCandidate);
   if(!docs.length){box.className='empty company-doc-status';box.innerHTML='Ainda não foram identificados documentos da empresa. Anexe a certidão permanente, cartão de pessoa coletiva ou declaração de início de atividade e selecione <b>Carregar dados da empresa</b>.';return;}
   const p=state.profile||{};
-  const data=[['Empresa',p.companyName],['NIF',p.nif],['Sede',p.address],['Código postal',p.postalCode],['Localidade',p.locality],['CAE principal',p.caePrimary],['CAE secundário',p.caeSecondary],['Constituição / matrícula',p.registryDate?fmtDate(p.registryDate):'']].filter(([,v])=>v);
+  const data=[['Empresa',p.companyName],['NIF',p.nif],['Sede',p.address],['Código postal',p.postalCode],['Localidade',p.locality],['CAE principal',p.caePrimary],['CAE secundário',p.caeSecondary],['Constituição / matrícula',p.registryDate?fmtDate(p.registryDate):''],['Capital social',num(p.shareCapital)>0?money(p.shareCapital):'']].filter(([,v])=>v);
   const processed=docs.filter(a=>a.analysis?.status==='analyzed').length;
   const unread=docs.filter(a=>a.analysis?.status==='needs_manual').length;
   box.className=`company-doc-status ${processed?'success':'warning'}`;
@@ -901,7 +962,7 @@ function renderCompanyDocumentStatus(){
 }
 function renderAll(){
   if ($('companyName')) {
-    $('companyName').value=state.profile.companyName||''; $('companyNif').value=state.profile.nif||''; $('companyAddress').value=state.profile.address||''; $('companyPostal').value=state.profile.postalCode||''; $('companyLocality').value=state.profile.locality||''; $('companyCaePrimary').value=state.profile.caePrimary||''; $('companyCaeSecondary').value=state.profile.caeSecondary||''; $('companyRegistryDate').value=state.profile.registryDate||''; $('companyYear').value=state.profile.year||defaultYear;
+    $('companyName').value=state.profile.companyName||''; $('companyNif').value=state.profile.nif||''; $('companyAddress').value=state.profile.address||''; $('companyPostal').value=state.profile.postalCode||''; $('companyLocality').value=state.profile.locality||''; $('companyCaePrimary').value=state.profile.caePrimary||''; $('companyCaeSecondary').value=state.profile.caeSecondary||''; $('companyRegistryDate').value=state.profile.registryDate||''; if($('companyShareCapital')) $('companyShareCapital').value=num(state.profile.shareCapital)>0?String(state.profile.shareCapital).replace('.',','):''; $('companyYear').value=state.profile.year||defaultYear;
   }
   renderHeader(); renderDashboard(); renderEntryList(); renderTrial(); renderIncome(); renderBalance(); renderTaxData(); renderAttachments(); renderAutoRules(); renderAutoBatchQueue(); renderCompanyDocumentStatus();
 }
@@ -962,32 +1023,124 @@ function updateBankPreview(){
 function setFormDates(){
   ['autoDate','saleDate','expenseDate','bankDate','manualDate','attachmentDate','socialDate','vatDate'].forEach(id=>$(id).value=today);
 }
-function entryRevenueEvidence(entry={}){
+function salesSourceText(entry={}){
   const attachment=(state.attachments||[]).find(att=>att.id===entry.attachmentId);
-  const raw=[entry.description,entry.ref,entry.counterparty,entry.classification,entry.sourceKey,attachment?.name,attachment?.note,attachment?.category].filter(Boolean).join(' ');
-  return revenueEvidence(raw);
+  return [entry.description,entry.ref,entry.counterparty,entry.classification,entry.sourceKey,attachment?.name,attachment?.note,attachment?.category,attachment?.classifiedCategory].filter(Boolean).join(' ');
+}
+function entryRevenueEvidence(entry={}){
+  return revenueEvidence(salesSourceText(entry));
+}
+function strongSalesEvidence(text=''){
+  const hay=normalizeSpaces(String(text||'')).toLowerCase();
+  const positive=/\b(?:evolu[cç][aã]o\s+(?:d[ae]s?\s+)?vendas|resumo\s+de\s+vendas|mapa\s+de\s+vendas|vendas?\s+(?:anuais|mensais)|total\s+(?:de\s+)?vendas|total\s+faturado|fatura\s+emitida|fatura[-\s]?recibo\s+emitida|presta[cç][aã]o\s+de\s+servi[cç]os|servi[cç]os\s+prestados|receitas?\s+(?:de\s+)?vendas?|fatura[cç][aã]o\s+(?:anual|mensal))\b/i.test(hay);
+  const negative=/\b(?:fatura\s+recebida|factura\s+recebida|fornecedor|emitente|despesa|compra|nota\s+de\s+d[eé]bito|guia\s+de\s+pagamento)\b/i.test(hay);
+  return positive && !negative;
+}
+function entryAmountForSaleRepair(entry={}){
+  const lines=entry.lines||[];
+  const expenseLine=lines.find(line=>accountDefinition(line.account)?.type==='expense'&&Number(line.debit||0)>0);
+  const revenueLine=lines.find(line=>accountDefinition(line.account)?.type==='revenue'&&Number(line.credit||0)>0);
+  const vatIn=lines.find(line=>String(line.account)==='2432'&&Number(line.debit||0)>0);
+  const vatOut=lines.find(line=>String(line.account)==='2433'&&Number(line.credit||0)>0);
+  const vat=round(vatOut?.credit||vatIn?.debit||0);
+  const debitTotal=round(lines.reduce((s,l)=>s+Number(l.debit||0),0));
+  const creditTotal=round(lines.reduce((s,l)=>s+Number(l.credit||0),0));
+  const gross=round(Math.max(debitTotal,creditTotal));
+  // Some older automatic entries were posted as bank/fornecedor, without an expense line.
+  // In that case the balanced amount is still a reliable basis for the sales correction.
+  const base=round(revenueLine?.credit||expenseLine?.debit||Math.max(0,gross-vat));
+  const total=round(base+vat||gross);
+  return {base,vat,total};
+}
+function repairEntryAsSale(entry={}){
+  const raw=salesSourceText(entry);
+  if(!strongSalesEvidence(raw) && !/evolu[cç][aã]o.*vendas|resumo.*vendas|mapa.*vendas|fatura[cç][aã]o|vendas?.*(?:anuais|mensais)/i.test(raw)) return false;
+  const values=entryAmountForSaleRepair(entry);
+  if(values.base<=0||values.total<=0) return false;
+  const revenue=revenueAccountFromText(raw);
+  const receivable=accountWithCounterparty('211',entry.counterparty||'Cliente por identificar',entry.nif||'',true);
+  entry.origin='Venda / serviço';
+  entry.rubric=accountLabel(revenue);
+  entry.classification=`${entry.classification?`${entry.classification} · `:''}Venda/serviço corrigido automaticamente para ${revenue} — ${ACCOUNT_MAP[revenue].name}`;
+  entry.lines=[{account:receivable,debit:values.total},{account:revenue,credit:values.base},...(values.vat?[{account:'2433',credit:values.vat}]:[])];
+  const proposal=(state.batchQueue||[]).find(p=>p.sourceKey&&p.sourceKey===entry.sourceKey);
+  if(proposal){
+    proposal.kind='sale';proposal.account=revenue;proposal.payment='211';proposal.base=values.base;proposal.vatRate=values.vat&&values.base?round(values.vat/values.base*100):0;proposal.total=values.total;
+    proposal.reason='Venda/serviço corrigido automaticamente';proposal.confidence='Alta — correção de vendas';proposal.registered=true;proposal.registrationMode='automatic';
+  }
+  return true;
 }
 function reclassifyAutomaticRevenueEntries({silent=true}={}){
   let corrected=0;
   (state.entries||[]).forEach(entry=>{
-    if(entry.origin==='Venda / serviço' || entry.source!=='automatic' || !entryRevenueEvidence(entry))return;
-    const expenseLine=(entry.lines||[]).find(line=>accountDefinition(line.account)?.type==='expense' && Number(line.debit||0)>0);
-    if(!expenseLine)return;
-    const vatLine=(entry.lines||[]).find(line=>String(line.account)==='2432' && Number(line.debit||0)>0);
-    const base=round(expenseLine.debit||0),vat=round(vatLine?.debit||0),total=round(base+vat);
-    if(base<=0||total<=0)return;
-    const revenue=revenueAccountFromText([entry.description,entry.ref,entry.counterparty,entry.classification].join(' '));
-    const receivable=accountWithCounterparty('211',entry.counterparty||'Cliente por identificar',entry.nif||'',true);
-    entry.origin='Venda / serviço';
-    entry.rubric=accountLabel(revenue);
-    entry.classification=`${entry.classification?`${entry.classification} · `:''}Receita corrigida automaticamente para ${revenue} — ${ACCOUNT_MAP[revenue].name}`;
-    entry.lines=[{account:receivable,debit:total},{account:revenue,credit:base},...(vat?[{account:'2433',credit:vat}]:[])];
-    const proposal=(state.batchQueue||[]).find(p=>p.sourceKey&&p.sourceKey===entry.sourceKey);
-    if(proposal){proposal.kind='sale';proposal.account=revenue;proposal.payment='211';proposal.base=base;proposal.vatRate=vat&&base?round(vat/base*100):0;proposal.total=total;proposal.reason='Receita corrigida automaticamente';proposal.confidence='Alta — correção de DR';proposal.registered=true;proposal.registrationMode='automatic';}
-    corrected++;
+    const hasRevenue=(entry.lines||[]).some(line=>accountDefinition(line.account)?.type==='revenue'&&Number(line.credit||0)>0);
+    if(entry.origin==='Venda / serviço'&&hasRevenue)return;
+    if(repairEntryAsSale(entry))corrected++;
   });
-  if(corrected&&!silent){fillAccountSelects();renderAll();toast(`${corrected} lançamento(s) reclassificado(s) para vendas / prestações de serviços.`);}
+  if(corrected&&!silent){fillAccountSelects();renderAll();toast(`${corrected} lançamento(s) foram corrigidos para vendas / prestações de serviços.`);}
   return corrected;
+}
+async function createMissingSalesEntriesFromAttachments(){
+  let created=0,skipped=0;
+  const attachments=[...(state.attachments||[])];
+  for(const att of attachments){
+    if(!att?.id||att.category==='Dados da empresa')continue;
+    const existing=(state.entries||[]).filter(e=>e.attachmentId===att.id);
+    if(att.analysis?.isCsv||fileExtension(att)==='csv')continue;
+    if(existing.length)continue;
+    const meta=`${att.name||''} ${att.note||''} ${att.category||''} ${att.classifiedCategory||''}`;
+    let file,text='';
+    try{file=await fileFromAttachment(att);text=await extractTextFromFile(file);}catch{skipped++;continue;}
+    const full=`${text||''} ${meta}`;
+    if(!strongSalesEvidence(full))continue;
+    const proposal=buildDocumentProposal({file,text,requestedType:'sale',attachmentId:att.id,attachmentName:att.name||'Documento de vendas',sourceKey:`${att.id}:sale-recovery`});
+    if(!proposalIsComplete(proposal)){skipped++;continue;}
+    const entry=entryFromBatchProposal(proposal);
+    if(entry&&addEntry({...entry,silent:true})){
+      att.classifiedCategory='Venda';
+      att.analysis={...(att.analysis||{}),status:'analyzed',batchStatus:'auto_registered',registeredAt:new Date().toISOString(),registeredProposal:{kind:'sale',account:proposal.account,base:proposal.base,vatRate:proposal.vatRate,confidence:'Alta — recuperação de vendas'}};
+      created++;
+    }
+  }
+  return {created,skipped};
+}
+async function reconcileSalesAndRefresh(){
+  const corrected=reclassifyAutomaticRevenueEntries({silent:true});
+  const recovered=await createMissingSalesEntriesFromAttachments();
+  fillAccountSelects();renderAll();
+  toast(`${corrected} venda(s) corrigida(s)${recovered.created?` · ${recovered.created} venda(s) criada(s) a partir de anexos`:''}${recovered.skipped?` · ${recovered.skipped} anexo(s) de vendas sem valor legível`:''}.`);
+}
+function dominantSalesYear(){
+  const years={};
+  (state.entries||[]).forEach(entry=>{
+    if(entry.origin==='Venda / serviço'||entryRevenueEvidence(entry)){
+      const y=String(entry.date||'').slice(0,4);if(/^20\d\d$/.test(y))years[y]=(years[y]||0)+1;
+    }
+  });
+  return Object.entries(years).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
+}
+async function synchroniseReportsAndPeriod(){
+  const button=$('syncReportsBtn'); if(button){button.disabled=true;button.textContent='A sincronizar…';}
+  try{
+    await reconcileSalesAndRefresh();
+    const salesNow=drData(calculateBalances()).lines.salesServices;
+    const year=dominantSalesYear();
+    if(salesNow<=0.004&&year){
+      state.profile.from=`${year}-01-01`;state.profile.to=`${year}-12-31`;state.profile.year=Number(year);
+      if($('periodFrom'))$('periodFrom').value=state.profile.from;if($('periodTo'))$('periodTo').value=state.profile.to;
+      renderAll();toast(`Período ajustado automaticamente para ${year}, que contém os documentos de vendas.`);
+    }
+  } finally { if(button){button.disabled=false;button.textContent='Sincronizar vendas e período';} }
+}
+async function synchroniseBalanceData(){
+  const button=$('syncBalanceBtn');if(button){button.disabled=true;button.textContent='A sincronizar…';}
+  try{
+    const docs=(state.attachments||[]).filter(a=>a.category==='Dados da empresa'||a.analysis?.companyCandidate);
+    if(docs.length) await analyzeCompanyAttachments(docs,false,{includeOnlyRelevant:true});
+    renderAll();
+    const s=balanceSections(calculateClosingBalances());
+    toast(`Balanço sincronizado até ${fmtDate(getPeriod().to)}. Capital contabilístico: ${money(s.capitalLedger)}${s.capitalFromDocument?` · capital identificado na certidão: ${money(s.declaredCapital)}`:''}.`);
+  } finally { if(button){button.disabled=false;button.textContent='Sincronizar capital e saldos';} }
 }
 function exportData(){
   const payload={...state,attachments:state.attachments.map(({url,...a})=>a),exportedAt:new Date().toISOString(),app:'Conta360',attachmentsIncluded:true};
@@ -1005,6 +1158,7 @@ function importJSON(file){
       state={profile:{...blankState().profile,...data.profile},entries:data.entries||[],attachments:(data.attachments||[]).map(a=>({...a,url:a.dataUrl||null})),counterpartyRules:data.counterpartyRules||{},subaccounts:data.subaccounts||{},batchQueue:(data.batchQueue||[]).filter(item=>!item.registered)};
       const corrected=reclassifyAutomaticRevenueEntries({silent:true});
       fillAccountSelects();renderAll();toast(`${data.attachmentsIncluded?'Dados e anexos importados.':'Dados importados.'}${corrected?` ${corrected} lançamento(s) foram corrigidos para vendas / serviços.`:''}`);
+      setTimeout(async()=>{await synchroniseReportsAndPeriod();await synchroniseBalanceData();},50);
     }catch{toast('Não foi possível importar este ficheiro JSON.');}
   };reader.readAsText(file,'utf-8');
 }
@@ -1257,9 +1411,14 @@ function extractCompanyRegistryDate(text){
   const labelled=companyLine(text,['data de constitui[cç][aã]o','data de matr[ií]cula','data de matricula','data de in[ií]cio de atividade','data de in[ií]cio']);
   return parsePtDate(labelled)||'';
 }
+function extractCompanyShareCapital(text){
+  const flat=normalizeSpaces(text);
+  const match=flat.match(/capital\s+social(?:\s+(?:realizado|subscrito))?\s*[:\-]?\s*(?:EUR|€)?\s*([0-9][0-9.\s]*[,\.][0-9]{2}|[0-9][0-9.\s]*)/i);
+  return match?round(parseAmount(match[1])):0;
+}
 function extractCompanyData(text){
   const address=extractCompanyAddress(text), cae=extractCompanyCae(text);
-  return {name:extractCompanyName(text),nif:extractCompanyNif(text),address:address.address,postalCode:address.postalCode,locality:address.locality,caePrimary:cae.caePrimary,caeSecondary:cae.caeSecondary,registryDate:extractCompanyRegistryDate(text)};
+  return {name:extractCompanyName(text),nif:extractCompanyNif(text),address:address.address,postalCode:address.postalCode,locality:address.locality,caePrimary:cae.caePrimary,caeSecondary:cae.caeSecondary,registryDate:extractCompanyRegistryDate(text),shareCapital:extractCompanyShareCapital(text)};
 }
 function companyDocumentScore(att={}, text=''){
   const meta=normalizeSpaces(`${att.name||''} ${att.category||''}`).toLowerCase();
@@ -1287,7 +1446,7 @@ function applyExtractedCompanyData(candidates=[]){
   if(!valid.length)return false;
   const pick=(key)=>valid.map(x=>x.data[key]).find(Boolean)||'';
   const p=state.profile;
-  const map={companyName:'name',nif:'nif',address:'address',postalCode:'postalCode',locality:'locality',caePrimary:'caePrimary',caeSecondary:'caeSecondary',registryDate:'registryDate'};
+  const map={companyName:'name',nif:'nif',address:'address',postalCode:'postalCode',locality:'locality',caePrimary:'caePrimary',caeSecondary:'caeSecondary',registryDate:'registryDate',shareCapital:'shareCapital'};
   let changed=false;
   Object.entries(map).forEach(([target,key])=>{
     const value=pick(key);
@@ -1366,7 +1525,7 @@ function requestedTypeFromCategory(category=''){
   const c=norm(category); if(c.includes('venda'))return'sale';if(c.includes('despesa'))return'expense';if(c.includes('banco'))return'bank';if(c.includes('imposto'))return'tax';return'auto';
 }
 function categoryFromAutomaticKind(kind=''){
-  if(kind==='sale')return 'Venda'; if(kind==='expense')return 'Despesa'; if(kind==='bank')return 'Banco'; if(kind==='tax')return 'Impostos e contribuições'; return 'Outro';
+  if(kind==='sale')return 'Venda'; if(kind==='expense')return 'Despesa'; if(kind==='bank')return 'Banco'; if(kind==='tax')return 'Impostos e contribuições'; if(kind==='balance')return 'Balancete / saldos'; return 'Outro';
 }
 function autoPaymentForKind(kind){
   return kind==='sale'?'211':kind==='bank'?'12':kind==='tax'?'245':'221';
@@ -1378,13 +1537,20 @@ function proposalCanAutoRegister(proposal={}){
   return proposalIsComplete(proposal);
 }
 function proposalIsComplete(proposal={}){
+  if(proposal.kind==='balance') return proposal.postingEligible!==false && Array.isArray(proposal.balanceLines) && proposal.balanceLines.length>0;
   return proposal.postingEligible!==false && Boolean(proposal.date && proposal.description && num(proposal.base)>0 && proposal.kind && proposal.kind!=='reference' && proposal.account);
 }
 function buildDocumentProposal({file=null,text='',requestedType='auto',attachmentId=null,attachmentName='',sourceKey='',rowIndex=null,rowCount=null}){
   const rawText=String(text||'');
   const sourceName=attachmentName||file?.name||'Documento';
   const preKind=requestedType==='auto'?'expense':requestedType;
-  const entity=extractCounterparty(rawText,preKind),nif=extractNif(rawText),classification=classifyDocument({text:rawText,requestedType,counterparty:entity,nif,fileName:sourceName});
+  const entity=extractCounterparty(rawText,preKind),nif=extractNif(rawText);
+  let classification=classifyDocument({text:rawText,requestedType,counterparty:entity,nif,fileName:sourceName});
+  // A sales report or issued invoice must never fall back to an expense merely because its attachment category was generic.
+  if(requestedType==='auto' && strongSalesEvidence(`${rawText} ${sourceName}`)){
+    const revenue=revenueAccountFromText(`${rawText} ${sourceName}`);
+    classification={...classification,kind:'sale',account:revenue,postingEligible:true,documentType:'sales_document',reason:revenue==='71'?'Venda / faturação identificada':'Prestação de serviços identificada',confidence:'Alta — vendas identificadas'};
+  }
   const amounts=extractAmounts(rawText),date=extractDate(rawText),ref=extractReference(rawText)||extractReference(sourceName);
   const cleanFileLabel=String(sourceName).replace(/\.[a-z0-9]{1,8}$/i,'').replace(/[_\-]+/g,' ').trim();
   const description=normalizeSpaces(lineValue(rawText,['descri[cç][aã]o','designa[cç][aã]o','servi[cç]o','produto'])||`${classification.reason}${entity?` — ${entity}`:''}`)||cleanFileLabel||'Documento analisado';
@@ -1447,8 +1613,8 @@ function renderAutoBatchQueue(){
     const reviewNeeded=!informational&&(proposalNeedsReview(p)||!proposalIsComplete(p));
     const stateLabel=p.registered?(p.registrationMode==='automatic'?'Auto-registado':'Registado'):informational?'Anexo informativo':reviewNeeded?'Falta valor / rever':'Pronto';
     const stateClass=p.registered?'ok':informational?'':'warning';
-    const kindLabel=informational?'Documento de suporte':p.kind==='sale'?'Venda / serviço':p.kind==='expense'?'Despesa':p.kind==='bank'?'Banco / caixa':'Impostos';
-    const amount=informational?'Sem lançamento automático':num(p.base)>0?`${money(p.base)}${p.vatRate?` + IVA ${p.vatRate}%`:''}`:'Valor por confirmar';
+    const kindLabel=informational?'Documento de suporte':p.kind==='balance'?'Balancete / saldos':p.kind==='sale'?'Venda / serviço':p.kind==='expense'?'Despesa':p.kind==='bank'?'Banco / caixa':'Impostos';
+    const amount=informational?'Sem lançamento automático':p.kind==='balance'?`${p.balanceLineCount||p.balanceLines?.length||0} conta(s) contabilística(s)`:num(p.base)>0?`${money(p.base)}${p.vatRate?` + IVA ${p.vatRate}%`:''}`:'Valor por confirmar';
     return `<div class="auto-batch-row ${p.registered?'registered':reviewNeeded?'needs-review':''}">
       <input class="batch-check" type="checkbox" data-batch-check="${p.id}" ${p.checked&&!p.registered?'checked':''} ${(p.registered||p.postingEligible===false)?'disabled':''} aria-label="Selecionar ${escapeHTML(p.name||'documento')}">
       <div><div class="batch-title"><span class="file-kind ${fileKind({name:p.name||'',type:''}).className}">${fileKind({name:p.name||'',type:''}).label}</span>${escapeHTML(p.name||'Documento')}<span class="batch-tag ${stateClass}">${stateLabel}</span></div>
@@ -1555,9 +1721,83 @@ function directPaymentFromCsv(row={},kind='expense'){
   if(kind==='expense')return '221';
   return payment;
 }
+function accountCodeFromLabel(label=''){
+  const h=norm(label);
+  const matches=[
+    [/capital.*(?:realizado|social|subscrito)|capitalrealizado|capitalsocial/,'51'],
+    [/aco(es|es)|quotasproprias/,'52'],[/instrumentos.*capital/,'53'],[/premios.*emissao/,'54'],
+    [/reservaslegais/,'551'],[/reservas/,'55'],[/resultados.*transitados/,'56'],[/ajustamentos.*ativosfinanceiros/,'57'],[/excedentes.*revalorizacao/,'58'],[/variacoes.*capital/,'59'],
+    [/vendas.*servicos|servicos.*prestados|prestacaodeservicos/,'72'],[/^vendas|faturacao|facturacao/,'71'],
+    [/caixa/,'11'],[/depositos.*ordem|banco/,'12'],[/clientes/,'21'],[/fornecedores/,'22'],[/estado.*entespublicos/,'24'],
+    [/inventarios|mercadorias|materiasprimas/,'32'],[/ativos.*fixos|imobilizado|equipamento/,'43'],[/ativosintangiveis/,'44'],
+    [/financiamentosobtidos/,'25'],[/socios|acionistas/,'26'],[/outrascontas.*receber/,'27'],[/outrascontas.*pagar|outroscredores/,'28'],
+    [/custo.*mercadorias|materiasconsumidas/,'61'],[/fornecimentos.*servicos.*externos/,'62'],[/gastos.*pessoal/,'63'],[/depreciacao|amortizacao/,'64'],[/outrosgastos/,'68'],[/juros.*gastos|gastos.*financeiros/,'69']
+  ];
+  return matches.find(([re])=>re.test(h))?.[1]||'';
+}
+function csvAccountCode(row={}){
+  const raw=String(csvValue(row,['conta','conta contabilistica','conta contabilística','codigo','código','codigo conta','código conta','n conta','n.º conta','designacao conta','designação conta','rubrica','descricao','descrição'])||'').trim();
+  const code=raw.match(/\b[1-8][0-9]{0,7}(?:[.][0-9]{1,4})?\b/)?.[0]||'';
+  return normalizedAccountCode(code||accountCodeFromLabel(raw));
+}
+function csvBalanceAmounts(row={}){
+  let debit=csvNumeric(row,['saldo devedor','saldo final devedor','saldo devedor final','saldo debit','saldo débito','debito','débito','movimentos a debito','movimentos a débito']);
+  let credit=csvNumeric(row,['saldo credor','saldo final credor','saldo credor final','saldo credito','saldo crédito','credito','crédito','movimentos a credito','movimentos a crédito']);
+  if(!debit&&!credit){
+    const single=csvNumeric(row,['saldo final','saldo','valor','montante']);
+    const nature=norm(csvValue(row,['natureza','dc','d/c','debito credito','débito crédito','sinal']));
+    const type=accountDefinition(csvAccountCode(row)).type;
+    if(single){
+      if(/cred|^c$|credito/.test(nature) || (!nature && ['liability','equity','revenue'].includes(type)))credit=single;
+      else debit=single;
+    }
+  }
+  return {debit:round(debit),credit:round(credit)};
+}
+function isAccountingBalanceCsv(rows=[]){
+  if(!rows.length)return false;
+  const headers=norm(Object.keys(rows[0]||{}).join(' '));
+  const hasAccount=/conta|codigoconta|codigo|nconta/.test(headers);
+  const hasBalances=/saldodevedor|saldocredor|debito|credito|saldofinal|saldo|valor|montante/.test(headers);
+  const sample=rows.slice(0,30);
+  const valid=sample.filter(r=>isSNCAccountCode(csvAccountCode(r))).length;
+  return hasAccount&&hasBalances&&valid>=Math.min(2,sample.length);
+}
+function childAccountOf(code,parent){
+  const c=accountDigits(code),p=accountDigits(parent);
+  return c.length>p.length&&c.startsWith(p);
+}
+function buildBalanceCsvProposal({rows=[],file=null,attachmentId=null,rawText=''}){
+  let items=rows.map((row,index)=>{
+    const account=csvAccountCode(row), amounts=csvBalanceAmounts(row);
+    return {account,debit:amounts.debit,credit:amounts.credit,index};
+  }).filter(x=>isSNCAccountCode(x.account)&&(x.debit>0||x.credit>0));
+  // Evita duplicar linhas de síntese quando o ficheiro contém simultaneamente contas-mãe e subcontas.
+  items=items.filter(item=>!items.some(other=>other.account!==item.account&&childAccountOf(other.account,item.account)));
+  const debit=round(items.reduce((s,x)=>s+x.debit,0)),credit=round(items.reduce((s,x)=>s+x.credit,0));
+  const difference=round(debit-credit);
+  let balancingNote='';
+  if(Math.abs(difference)>0.01){
+    items.push(difference>0?{account:'56',debit:0,credit:difference,generated:true}:{account:'56',debit:Math.abs(difference),credit:0,generated:true});
+    balancingNote=` · contrapartida técnica em 56 de ${money(Math.abs(difference))}`;
+  }
+  const date=csvDate(csvValue(rows[0]||{},['data','data referencia','data de referencia','data fim','data final'])||today);
+  const sourceName=file?.name||'Balancete CSV';
+  const base=Math.max(debit,credit);
+  const proposal={
+    id:uid(), attachmentId:attachmentId||null, sourceKey:`${attachmentId||sourceName}:balance`, name:sourceName,
+    kind:'balance', account:'56', payment:'', entity:'', nif:'', date, ref:`Importação ${sourceName}`.slice(0,80),
+    description:`Importação de balancete / saldos — ${sourceName}`, base, vatRate:0,total:base,
+    balanceLines:items.map(x=>({account:x.account,debit:x.debit,credit:x.credit})),balanceLineCount:items.length,
+    confidence:'Alta — contas e saldos identificados',reason:`Balancete contabilístico importado com ${items.length} conta(s)${balancingNote}`,
+    postingEligible:items.length>0,documentType:'balancete',createdAt:new Date().toISOString(),registered:false,textChars:String(rawText||'').length,textAvailable:true
+  };
+  proposal.needsReview=proposalNeedsReview(proposal);proposal.checked=proposalIsComplete(proposal);
+  return proposal;
+}
 function buildCsvRowProposal({row={},rowIndex=0,rowCount=0,file=null,attachmentId=null,requestedType='auto'}){
   const sourceName=file?.name||'Ficheiro CSV';
-  const kind=csvKindForRow(row,sourceName,requestedType);
+  let kind=csvKindForRow(row,sourceName,requestedType);
   const text=csvRowText(row);
   const entity=csvEntityForRow(row,kind);
   const nif=csvNifForRow(row,kind);
@@ -1566,7 +1806,11 @@ function buildCsvRowProposal({row={},rowIndex=0,rowCount=0,file=null,attachmentI
   const ref=csvReferenceForRow(row)||initial.ref;
   const description=csvDescriptionForRow(row,kind,ref,entity)||initial.description;
   const directAccount=directAccountFromCsv(row,kind);
-  const classified=classifyDocument({text,requestedType:kind,counterparty:entity,nif,fileName:sourceName});
+  let classified=classifyDocument({text,requestedType:kind,counterparty:entity,nif,fileName:sourceName});
+  if(strongSalesEvidence(`${text} ${sourceName}`)){
+    kind='sale';
+    classified={...classified,kind:'sale',account:revenueAccountFromText(`${text} ${sourceName}`),postingEligible:true,reason:'Venda identificada na linha CSV',confidence:'Alta — linha de vendas'};
+  }
   const account=directAccount||classified.account||initial.account;
   const payment=directPaymentFromCsv(row,kind);
   const date=csvDate(csvValue(row,['data','data documento','data do documento','data fatura','data emissao','data emissão'])||initial.date);
@@ -1580,6 +1824,10 @@ async function proposalsFromFile({file,attachmentId=null,requestedType='auto',fa
   if(ext==='csv'){
     const raw=await file.text();
     const rows=parseCSV(raw);
+    if(isAccountingBalanceCsv(rows)){
+      const proposal=buildBalanceCsvProposal({rows,file,attachmentId,rawText:raw});
+      return {proposals:proposal.balanceLines.length?[proposal]:[],rawText:raw,rowCount:rows.length,ignoredRows:proposal.balanceLines.length?0:rows.length,isCsv:true,isBalanceCsv:true};
+    }
     const proposals=[];let ignored=0;
     rows.forEach((row,index)=>{
       const p=buildCsvRowProposal({row,rowIndex:index,rowCount:rows.length,file,attachmentId,requestedType});
@@ -1607,7 +1855,7 @@ async function loadAndClassifyExistingAttachments(forceAuto=false){
   const candidates=(state.attachments||[]).filter(att=>att&&att.id&&att.category!=='Dados da empresa'&&(!queuedAttachmentIds.has(att.id)||forceAuto));
   if(!candidates.length){toast('Não existem anexos pendentes para classificar. Adicione documentos ou reveja o lote já carregado.');return;}
   const status=$('autoBatchStatus');
-  if(status){status.className='alert info auto-batch-status';status.innerHTML=`<b>A carregar, classificar e validar ${candidates.length} anexo(s)…</b> Só documentos com evidência de operação contabilizável geram lançamento. Nos CSV, cada linha será tratada individualmente.`;}
+  if(status){status.className='alert info auto-batch-status';status.innerHTML=`<b>A carregar, classificar e validar ${candidates.length} anexo(s)…</b> Documentos de vendas, faturas emitidas e mapas/resumos de faturação geram lançamento em 71 ou 72. Nos CSV, cada linha será tratada individualmente.`;}
   let filesDone=0,rows=0,failed=0,ignored=0; const created=[];
   for(const att of candidates){
     try{
@@ -1630,7 +1878,7 @@ async function loadAndClassifyExistingAttachments(forceAuto=false){
 }
 async function loadAndClassifyDocuments(files=[],fallbackText=''){
   const documents=[...files];if(!documents.length){toast('Selecione pelo menos um documento.');return;}
-  const status=$('autoBatchStatus');if(status){status.className='alert info auto-batch-status';status.innerHTML=`<b>A carregar, classificar e criar lançamentos para ${documents.length} documento(s)…</b> Nos CSV, a app criará um lançamento por linha válida.`;}
+  const status=$('autoBatchStatus');if(status){status.className='alert info auto-batch-status';status.innerHTML=`<b>A carregar, classificar e criar lançamentos para ${documents.length} documento(s)…</b> Nos CSV de operações, a app criará um lançamento por linha válida; nos balancetes CSV, preservará as contas e os saldos.`;}
   let filesDone=0,rows=0,failed=0,ignored=0;const created=[];
   for(let index=0;index<documents.length;index++){
     const file=documents[index];
@@ -1653,6 +1901,7 @@ async function loadAndClassifyDocuments(files=[],fallbackText=''){
 function entryFromBatchProposal(proposal){
   if(!proposal||proposal.postingEligible===false)return null;
   const meta={date:proposal.date,ref:proposal.ref,description:proposal.description,attachmentId:proposal.attachmentId,sourceKey:proposal.sourceKey||'',counterparty:proposal.entity,nif:proposal.nif,classification:`${proposal.reason||'Classificação automática'} · ${proposal.confidence||'provisória'}`,source:'automatic'};
+  if(proposal.kind==='balance') return {...meta,origin:'Importação de balancete',rubric:'Saldos contabilísticos importados',lines:(proposal.balanceLines||[])};
   const account=proposal.account,payment=proposal.payment,base=num(proposal.base),vat=num(proposal.vatRate);
   if(proposal.kind==='sale')return makeSale({...meta,revenue:ACCOUNT_MAP[account]?.type==='revenue'?account:'72',payment,base,vatRate:vat});
   if(proposal.kind==='bank'){
@@ -1795,7 +2044,7 @@ function findVal(row,names){
   return'';
 }
 function parseAmount(v){return Number(String(v||'').replace(/\s/g,'').replace(/\./g,'').replace(',','.'))||0;}
-function isKnownAccountCode(code){const x=String(code||'').trim();return !!(ACCOUNT_MAP[x]||(state.subaccounts||{})[x]);}
+function isKnownAccountCode(code){const x=normalizedAccountCode(code);return !!(ACCOUNT_MAP[x]||(state.subaccounts||{})[x]||isSNCAccountCode(x));}
 function paymentAccount(v,fallback='12'){const x=norm(v);if(x==='11'||x.includes('caixa'))return'11';if(x==='211'||x.includes('cliente'))return'211';if(x==='221'||x.includes('fornecedor'))return'221';if(x==='12'||x.includes('banco'))return'12';return isKnownAccountCode(v)?String(v).trim():fallback;}
 function importCSV(file){
   const reader=new FileReader(); reader.onload=()=>{
@@ -1846,7 +2095,7 @@ function bindEvents(){
   document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
   document.querySelectorAll('#entryTabs .subtab').forEach(b=>b.addEventListener('click',()=>switchEntryTab(b.dataset.entryTab)));
   $('autoAnalyzeBtn').addEventListener('click',analyzeAutomaticDocument);
-  $('fixIncomeBtn')?.addEventListener('click',()=>{const corrected=reclassifyAutomaticRevenueEntries({silent:true});renderAll();toast(corrected?`${corrected} lançamento(s) corrigido(s) para vendas / serviços.`:'Não foram encontrados lançamentos automáticos com evidência de vendas ou prestações de serviços para corrigir.');});
+  $('fixIncomeBtn')?.addEventListener('click',async()=>{const btn=$('fixIncomeBtn');if(btn){btn.disabled=true;btn.textContent='A corrigir vendas…';}try{await reconcileSalesAndRefresh();}finally{if(btn){btn.disabled=false;btn.textContent='Corrigir vendas e atualizar DR';}}}); $('syncReportsBtn')?.addEventListener('click',synchroniseReportsAndPeriod); $('syncBalanceBtn')?.addEventListener('click',synchroniseBalanceData);
   $('autoLoadAttachmentsBtn').addEventListener('click',loadAndClassifyExistingAttachments);
   $('autoRebuildAllBtn').addEventListener('click',rebuildAutomaticEntriesFromAttachments);
   $('autoCreateSelectedBtn').addEventListener('click',createSelectedBatchEntries);
@@ -1855,7 +2104,7 @@ function bindEvents(){
   $('autoLearnBtn').addEventListener('click',()=>{const entity=$('autoEntity').value,nif=$('autoNif').value,account=$('autoAccount').value,kind=$('autoKind').value;if(!entity&&!cleanNif(nif)){toast('Indique a entidade ou o NIF para guardar a regra.');return;}learnCounterparty({counterparty:entity,nif,account,kind,description:$('autoDescription').value});renderAutoRules();toast('Classificação guardada para esta entidade.');});
   ['autoKind','autoAccount','autoPayment','autoBase','autoVat','autoDate','autoRef','autoDescription'].forEach(id=>$(id).addEventListener('input',renderAutoPreview));
   $('autoKind').addEventListener('change',()=>{setAutoPaymentForKind($('autoKind').value);renderAutoPreview();});
-  $('companyForm').addEventListener('submit',e=>{e.preventDefault();state.profile.companyName=$('companyName').value.trim();state.profile.nif=$('companyNif').value.trim();state.profile.address=$('companyAddress').value.trim();state.profile.postalCode=$('companyPostal').value.trim();state.profile.locality=$('companyLocality').value.trim();state.profile.caePrimary=$('companyCaePrimary').value.trim();state.profile.caeSecondary=$('companyCaeSecondary').value.trim();state.profile.registryDate=$('companyRegistryDate').value;state.profile.year=Number($('companyYear').value)||defaultYear;state.profile.currency='EUR';renderAll();toast('Identificação atualizada.');});
+  $('companyForm').addEventListener('submit',e=>{e.preventDefault();state.profile.companyName=$('companyName').value.trim();state.profile.nif=$('companyNif').value.trim();state.profile.address=$('companyAddress').value.trim();state.profile.postalCode=$('companyPostal').value.trim();state.profile.locality=$('companyLocality').value.trim();state.profile.caePrimary=$('companyCaePrimary').value.trim();state.profile.caeSecondary=$('companyCaeSecondary').value.trim();state.profile.registryDate=$('companyRegistryDate').value;state.profile.shareCapital=parseAmount($('companyShareCapital')?.value||'');state.profile.year=Number($('companyYear').value)||defaultYear;state.profile.currency='EUR';renderAll();toast('Identificação atualizada.');});
   $('periodFrom').addEventListener('change',e=>{state.profile.from=e.target.value;renderAll();});
   $('periodTo').addEventListener('change',e=>{state.profile.to=e.target.value;renderAll();});
   $('saleForm').addEventListener('submit',async e=>{e.preventDefault();const attachment=await attachmentFromInput('saleFile','Venda',$('saleRef').value,$('saleDate').value);if(!attachment.ok)return;if(addEntry(makeSale({date:$('saleDate').value,ref:$('saleRef').value,description:$('saleDesc').value,revenue:$('saleRevenue').value,payment:$('salePayment').value,base:num($('saleBase').value),vatRate:num($('saleVat').value),attachmentId:attachment.id,counterparty:$('saleCounterparty').value,nif:$('saleNif').value,source:'manual'}))){$('saleForm').reset();$('saleDate').value=today;updateSalePreview();}});
@@ -1870,6 +2119,7 @@ function bindEvents(){
   $('settleVatBtn').addEventListener('click',async()=>{const b=calculateBalances(),out=Math.max(0,accountValue('2433','credit',b)),inn=Math.max(0,accountValue('2432','debit',b)),net=round(out-inn),date=$('vatDate').value||today;if(out===0&&inn===0){toast('Não existem movimentos de IVA para apurar.');return;}const ref=$('vatRef').value||'Apuramento IVA';const attachment=await attachmentFromInput('vatFile','Impostos e contribuições',ref,date);if(!attachment.ok)return;const lines=[];if(out)lines.push({account:'2433',debit:out});if(inn)lines.push({account:'2432',credit:inn});if(net>0)lines.push({account:'2436',credit:net});if(net<0)lines.push({account:'2437',debit:Math.abs(net)});if(addEntry({date,origin:'Impostos / contribuições',ref,description:'Apuramento de IVA',lines,attachmentId:attachment.id})){$('vatFile').value='';}});
   document.querySelectorAll('#loadCompanyFromAttachmentsBtn,[data-load-company-attachments]').forEach(btn=>btn.addEventListener('click',loadCompanyDataFromAttachments));
   $('companyFiles').addEventListener('change',handleCompanyFilesChange);
+  $('balanceCsvFile')?.addEventListener('change',async e=>{const files=[...(e.target.files||[])];if(!files.length)return;switchTab('entries');switchEntryTab('auto');await loadAndClassifyDocuments(files,'');e.target.value='';switchTab('balance');});
   $('clearEntriesBtn').addEventListener('click',()=>{if(confirm('Eliminar todos os lançamentos e anexos desta sessão?')){state=blankState();fillAccountSelects();renderAll();toast('Dados da sessão eliminados.');}});
   $('exportJsonBtn').addEventListener('click',exportData); $('importJsonFile').addEventListener('change',e=>{if(e.target.files[0])importJSON(e.target.files[0]);e.target.value='';});
   $('csvFile').addEventListener('change',e=>{if(e.target.files[0])importCSV(e.target.files[0]);e.target.value='';});$('templateCsvBtn').addEventListener('click',downloadTemplate);
@@ -1877,7 +2127,7 @@ function bindEvents(){
 }
 function init(){
   setFormDates();fillAccountSelects();
-  $('companyName').value=state.profile.companyName||'';$('companyNif').value=state.profile.nif||'';$('companyAddress').value=state.profile.address||'';$('companyPostal').value=state.profile.postalCode||'';$('companyLocality').value=state.profile.locality||'';$('companyCaePrimary').value=state.profile.caePrimary||'';$('companyCaeSecondary').value=state.profile.caeSecondary||'';$('companyRegistryDate').value=state.profile.registryDate||'';$('companyYear').value=state.profile.year;
+  $('companyName').value=state.profile.companyName||'';$('companyNif').value=state.profile.nif||'';$('companyAddress').value=state.profile.address||'';$('companyPostal').value=state.profile.postalCode||'';$('companyLocality').value=state.profile.locality||'';$('companyCaePrimary').value=state.profile.caePrimary||'';$('companyCaeSecondary').value=state.profile.caeSecondary||'';$('companyRegistryDate').value=state.profile.registryDate||'';if($('companyShareCapital'))$('companyShareCapital').value=num(state.profile.shareCapital)>0?String(state.profile.shareCapital).replace('.',','):'';$('companyYear').value=state.profile.year;
   bindEvents();renderAll();
 }
 init();
