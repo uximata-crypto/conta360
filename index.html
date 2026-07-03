@@ -300,12 +300,12 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
       </section>
 
       <section class="page" id="page-income">
-        <div class="page-intro"><div><h3>Demonstração de resultados</h3><p>Modelo de demonstração de resultados por naturezas, com deteção e contabilização automática de vendas e serviços prestados.</p></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="fixIncomeBtn" type="button">Corrigir vendas e atualizar DR</button><button class="btn primary" id="syncReportsBtn" type="button">Sincronizar vendas e período</button><button class="btn primary" data-print="income">Imprimir / guardar PDF</button></div></div>
+        <div class="page-intro"><div><h3>Demonstração de resultados</h3><p>Modelo de demonstração de resultados por naturezas, com deteção e contabilização automática de vendas e serviços prestados.</p></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="fixIncomeBtn" type="button">Corrigir vendas e atualizar DR</button><button class="btn primary" id="syncReportsBtn" type="button">Sincronizar vendas e período</button><button class="btn primary" data-reconcile-financial type="button">Reconciliar DR, balanço e capital</button><button class="btn primary" data-print="income">Imprimir / guardar PDF</button></div></div>
         <div class="report-card" id="incomeReport"></div>
       </section>
 
       <section class="page" id="page-balance">
-        <div class="page-intro"><div><h3>Balanço</h3><p>Ativo, capital próprio e passivo apresentados num modelo alinhado com o balanço SNC simplificado.</p></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn" for="balanceCsvFile">Carregar balancete / saldos CSV</label><input id="balanceCsvFile" type="file" accept=".csv,text/csv" hidden><button class="btn" id="syncBalanceBtn" type="button">Sincronizar capital e saldos</button><button class="btn primary" data-print="balance">Imprimir / guardar PDF</button></div></div>
+        <div class="page-intro"><div><h3>Balanço</h3><p>Ativo, capital próprio e passivo apresentados num modelo alinhado com o balanço SNC simplificado.</p></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn" for="balanceCsvFile">Carregar balancete / saldos CSV</label><input id="balanceCsvFile" type="file" accept=".csv,text/csv" hidden><label class="btn" for="balancePdfFile">Carregar balancete PDF</label><input id="balancePdfFile" type="file" accept=".pdf,application/pdf" hidden><button class="btn" id="syncBalanceBtn" type="button">Sincronizar capital e saldos</button><button class="btn primary" data-reconcile-financial type="button">Reconciliar DR, balanço e capital</button><button class="btn primary" data-print="balance">Imprimir / guardar PDF</button></div></div>
         <div class="alert info no-print" style="margin:0 0 16px"><b>Para carregar capital, ativos e passivos:</b> anexe aqui o balancete/saldos em CSV com as colunas <em>Conta</em>, <em>Saldo devedor</em> e <em>Saldo credor</em> (ou <em>Débito</em> e <em>Crédito</em>). A app preserva os códigos SNC, incluindo 51/511 para capital e as contas de ativo das classes 1, 3 e 4.</div>
         <div class="report-card" id="balanceReport"></div>
       </section>
@@ -671,6 +671,29 @@ function drData(balances=calculateBalances()){
   const ebit=round(ebitda-lines.depreciation-lines.depImpairment);
   const ebt=round(ebit+lines.financialIncome-lines.financialExpenses);
   const result=round(ebt-lines.incomeTax);
+  return {revenueGroups,expenseGroups,revenue,expenses,result,lines,ebitda,ebit,ebt};
+}
+function drData(balances=calculateBalances()){
+  const revenueRoots=['71','72','73','74','75','76','77','78','79'];
+  const expenseRoots=['61','62','63','64','65','66','67','68','69','81'];
+  const revenueGroups=drGroupsForRoots(revenueRoots,'revenue',balances);
+  const expenseGroups=drGroupsForRoots(expenseRoots,'expense',balances);
+  const expenseAmount=prefixes=>drAmountForPrefixes(prefixes,'expense',balances);
+  const revenueAmount=prefixes=>drAmountForPrefixes(prefixes,'revenue',balances);
+  const lines={
+    salesServices:revenueAmount(['71','72']), operatingSubsidies:revenueAmount(['75']), affiliateResults:0,
+    inventoryVariation:revenueAmount(['73']), ownWork:revenueAmount(['74']), cogs:expenseAmount(['61']), externalSupplies:expenseAmount(['62']), staffCosts:expenseAmount(['63']),
+    inventoryImpairment:expenseAmount(['651']), receivableImpairment:expenseAmount(['652']), provisions:expenseAmount(['67']),
+    nonDepImpairment:expenseAmount(['653','654','655']), fairValueAdjustments:round(revenueAmount(['76'])-expenseAmount(['66'])),
+    otherIncome:revenueAmount(['78']), otherExpenses:expenseAmount(['68']), depreciation:expenseAmount(['64']), depImpairment:expenseAmount(['656','657','658','659']),
+    financialIncome:revenueAmount(['77','79']), financialExpenses:expenseAmount(['69']), incomeTax:expenseAmount(['81'])
+  };
+  const ebitda=round(lines.salesServices+lines.operatingSubsidies+lines.affiliateResults+lines.inventoryVariation+lines.ownWork+lines.fairValueAdjustments+lines.otherIncome-lines.cogs-lines.externalSupplies-lines.staffCosts-lines.inventoryImpairment-lines.receivableImpairment-lines.provisions-lines.nonDepImpairment-lines.otherExpenses);
+  const ebit=round(ebitda-lines.depreciation-lines.depImpairment);
+  const ebt=round(ebit+lines.financialIncome-lines.financialExpenses);
+  const result=round(ebt-lines.incomeTax);
+  const revenue=round(revenueRoots.reduce((sum,code)=>sum+revenueAmount([code]),0));
+  const expenses=round(expenseRoots.filter(code=>code!=='81').reduce((sum,code)=>sum+expenseAmount([code]),0));
   return {revenueGroups,expenseGroups,revenue,expenses,result,lines,ebitda,ebit,ebt};
 }
 function balanceSections(balances=calculateClosingBalances()){
@@ -1735,6 +1758,30 @@ function accountCodeFromLabel(label=''){
   ];
   return matches.find(([re])=>re.test(h))?.[1]||'';
 }
+function strictCsvValue(row={},names=[]){
+  const keys=Object.keys(row||{});
+  for(const name of names){
+    const hit=keys.find(key=>norm(key)===norm(name));
+    if(hit!==undefined&&String(row[hit]??'').trim()!=='')return row[hit];
+  }
+  return '';
+}
+function csvBalanceAmounts(row={}){
+  const debitRaw=strictCsvValue(row,['saldo devedor','saldo final devedor','saldo devedor final','saldo débito','saldo debito','débito','debito','movimentos a débito','movimentos a debito']);
+  const creditRaw=strictCsvValue(row,['saldo credor','saldo final credor','saldo credor final','saldo crédito','saldo credito','crédito','credito','movimentos a crédito','movimentos a credito']);
+  let debit=parseAmount(debitRaw),credit=parseAmount(creditRaw);
+  if(!debit&&!credit){
+    const singleRaw=strictCsvValue(row,['saldo final','saldo','valor','montante']);
+    const single=parseAmount(singleRaw);
+    const nature=norm(strictCsvValue(row,['natureza','dc','d/c','debito credito','débito crédito','sinal']));
+    const type=accountDefinition(csvAccountCode(row)).type;
+    if(single){
+      if(/cred|^c$|credito/.test(nature)||(!nature&&['liability','equity','revenue'].includes(type)))credit=single;
+      else debit=single;
+    }
+  }
+  return {debit:round(debit),credit:round(credit)};
+}
 function csvAccountCode(row={}){
   const raw=String(csvValue(row,['conta','conta contabilistica','conta contabilística','codigo','código','codigo conta','código conta','n conta','n.º conta','designacao conta','designação conta','rubrica','descricao','descrição'])||'').trim();
   const code=raw.match(/\b[1-8][0-9]{0,7}(?:[.][0-9]{1,4})?\b/)?.[0]||'';
@@ -2095,7 +2142,7 @@ function bindEvents(){
   document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
   document.querySelectorAll('#entryTabs .subtab').forEach(b=>b.addEventListener('click',()=>switchEntryTab(b.dataset.entryTab)));
   $('autoAnalyzeBtn').addEventListener('click',analyzeAutomaticDocument);
-  $('fixIncomeBtn')?.addEventListener('click',async()=>{const btn=$('fixIncomeBtn');if(btn){btn.disabled=true;btn.textContent='A corrigir vendas…';}try{await reconcileSalesAndRefresh();}finally{if(btn){btn.disabled=false;btn.textContent='Corrigir vendas e atualizar DR';}}}); $('syncReportsBtn')?.addEventListener('click',synchroniseReportsAndPeriod); $('syncBalanceBtn')?.addEventListener('click',synchroniseBalanceData);
+  $('fixIncomeBtn')?.addEventListener('click',async()=>{const btn=$('fixIncomeBtn');if(btn){btn.disabled=true;btn.textContent='A corrigir vendas…';}try{await reconcileFinancialStatements({silent:false});}finally{if(btn){btn.disabled=false;btn.textContent='Corrigir vendas e atualizar DR';}}}); $('syncReportsBtn')?.addEventListener('click',synchroniseReportsAndPeriod); $('syncBalanceBtn')?.addEventListener('click',synchroniseBalanceData); document.querySelectorAll('[data-reconcile-financial]').forEach(btn=>btn.addEventListener('click',()=>reconcileFinancialStatements({silent:false})));
   $('autoLoadAttachmentsBtn').addEventListener('click',loadAndClassifyExistingAttachments);
   $('autoRebuildAllBtn').addEventListener('click',rebuildAutomaticEntriesFromAttachments);
   $('autoCreateSelectedBtn').addEventListener('click',createSelectedBatchEntries);
@@ -2125,6 +2172,345 @@ function bindEvents(){
   $('csvFile').addEventListener('change',e=>{if(e.target.files[0])importCSV(e.target.files[0]);e.target.value='';});$('templateCsvBtn').addEventListener('click',downloadTemplate);
   document.querySelectorAll('[data-print]').forEach(b=>b.addEventListener('click',()=>window.print()));
 }
+
+/* ───────────────────────────────────────────────────────────────────────
+   Reconciliação contabilística SNC — DR, Balanço e capital social
+   Esta camada normaliza lançamentos antigos e anexos importados, mesmo
+   quando vieram com rótulos em vez de códigos de conta.
+─────────────────────────────────────────────────────────────────────── */
+function parseAmount(value){
+  let s=String(value??'').trim().replace(/\u00a0/g,' ').replace(/[€$£]/g,'').replace(/\s+/g,'');
+  if(!s)return 0;
+  s=s.replace(/[^0-9,.-]/g,'');
+  const neg=/^-/.test(s); s=s.replace(/-/g,'');
+  const comma=s.lastIndexOf(','), dot=s.lastIndexOf('.');
+  if(comma>-1 && dot>-1){
+    if(comma>dot) s=s.replace(/\./g,'').replace(',','.');
+    else s=s.replace(/,/g,'');
+  }else if(comma>-1){
+    // In Portuguese files the comma is normally decimal; multiple commas are thousands separators.
+    s=(s.match(/,/g)||[]).length>1?s.replace(/,/g,''):s.replace(',','.');
+  }else if(dot>-1){
+    // A single dot with one/two following digits is decimal; otherwise it is a thousands separator.
+    const last=s.length-dot-1;
+    if(last!==1&&last!==2)s=s.replace(/\./g,'');
+  }
+  const n=Number(s);
+  return Number.isFinite(n)?(neg?-n:n):0;
+}
+function canonicalLedgerAccount(code=''){
+  const raw=normalizedAccountCode(code);
+  if(!raw)return '';
+  if(ACCOUNT_MAP[raw] || state?.subaccounts?.[raw])return raw;
+  if(/^71\s*\/\s*72$/.test(raw))return '72';
+  const labelCode=(typeof accountCodeFromLabel==='function'?accountCodeFromLabel(raw):'');
+  if(labelCode)return labelCode;
+  if(/^[1-8]\d{0,7}(?:\.\d{1,4})?$/.test(raw) && isSNCAccountCode(raw))return raw;
+  const h=norm(raw);
+  if(/vendas?|faturacao|facturacao|receitas?/.test(h))return '71';
+  if(/prestacao.*servicos|servicosprestados/.test(h))return '72';
+  if(/capital.*(social|realizado|subscrito)/.test(h))return '51';
+  return raw;
+}
+function accountDefinition(code){
+  const key=canonicalLedgerAccount(code);
+  if(key==='999')return {code:'999',name:'Contrapartida técnica de importação',type:'other'};
+  return ACCOUNT_MAP[key] || state?.subaccounts?.[key] || inferredAccountDefinition(key);
+}
+function accountLabel(code){
+  const clean=canonicalLedgerAccount(code); const a=accountDefinition(clean); return `${clean||code} — ${a.name}`;
+}
+function canonicalLines(lines=[]){
+  return (lines||[]).map(line=>({
+    account:canonicalLedgerAccount(line.account),
+    debit:round(Number(line.debit||0)),
+    credit:round(Number(line.credit||0))
+  })).filter(line=>line.account&&(line.debit||line.credit));
+}
+function salesSourceText(entry={}){
+  const attachment=(state.attachments||[]).find(att=>att.id===entry.attachmentId);
+  const proposal=(state.batchQueue||[]).find(item=>item.sourceKey&&item.sourceKey===entry.sourceKey);
+  return [entry.description,entry.ref,entry.counterparty,entry.rubric,entry.classification,entry.sourceKey,
+    attachment?.name,attachment?.note,attachment?.category,attachment?.classifiedCategory,
+    attachment?.analysis?.textPreview,attachment?.analysis?.companyData?.name,
+    proposal?.name,proposal?.description,proposal?.reason,proposal?.text].filter(Boolean).join(' ');
+}
+function entryHasRevenueCredit(entry={}){
+  return canonicalLines(entry.lines).some(line=>accountDefinition(line.account)?.type==='revenue'&&line.credit>0);
+}
+function entryIsSalesEvidence(entry={}){
+  const raw=salesSourceText(entry);
+  if(entry.origin==='Venda / serviço')return true;
+  if(strongSalesEvidence(raw))return true;
+  return /(?:evolu[cç][aã]o\s+(?:d[ae]\s+)?vendas|resumo\s+de\s+vendas|mapa\s+de\s+vendas|total\s+faturado|fatura[cç][aã]o\s+(?:anual|mensal)|fatura\s+emitida|presta[cç][aã]o\s+de\s+servi[cç]os|servi[cç]os\s+prestados)/i.test(raw);
+}
+function saleValuesFromEntry(entry={}){
+  const lines=canonicalLines(entry.lines);
+  const expense=lines.find(line=>accountDefinition(line.account)?.type==='expense'&&line.debit>0);
+  const outputVat=lines.find(line=>canonicalLedgerAccount(line.account)==='2433'&&line.credit>0);
+  const inputVat=lines.find(line=>canonicalLedgerAccount(line.account)==='2432'&&line.debit>0);
+  const vat=round(outputVat?.credit||inputVat?.debit||0);
+  const debit=round(lines.reduce((s,line)=>s+line.debit,0));
+  const credit=round(lines.reduce((s,line)=>s+line.credit,0));
+  const gross=Math.max(debit,credit);
+  const base=round(expense?.debit||Math.max(0,gross-vat)||gross);
+  return {base,vat,total:round(base+vat||gross),lines};
+}
+function reportingLinesForEntry(entry={}){
+  const lines=canonicalLines(entry.lines);
+  if(!entryIsSalesEvidence(entry) || entryHasRevenueCredit({...entry,lines}))return lines;
+  const values=saleValuesFromEntry({...entry,lines});
+  if(values.base<=0||values.total<=0)return lines;
+  const raw=salesSourceText(entry);
+  const revenue=revenueAccountFromText(raw);
+  const debitExisting=lines.find(line=>line.debit>0 && ['11','12'].includes(canonicalLedgerAccount(line.account)));
+  const customerExisting=lines.find(line=>line.debit>0 && canonicalLedgerAccount(line.account).startsWith('211'));
+  const receivable=customerExisting?.account||debitExisting?.account||'211';
+  return [{account:receivable,debit:values.total},{account:revenue,credit:values.base},...(values.vat>0?[{account:'2433',credit:values.vat}]:[])];
+}
+function calculateBalances(entries=periodEntries()){
+  const map={};
+  ACCOUNTS.forEach(a=>map[a.code]={...a,debit:0,credit:0});
+  Object.values(state.subaccounts||{}).forEach(a=>map[a.code]={...a,debit:0,credit:0});
+  (entries||[]).forEach(entry=>reportingLinesForEntry(entry).forEach(line=>{
+    const code=canonicalLedgerAccount(line.account);
+    if(!map[code]){const a=accountDefinition(code);map[code]={...a,code,debit:0,credit:0};}
+    map[code].debit+=Number(line.debit||0);map[code].credit+=Number(line.credit||0);
+  }));
+  return Object.values(map).map(a=>({...a,debit:round(a.debit),credit:round(a.credit),balanceDebit:round(Math.max(0,a.debit-a.credit)),balanceCredit:round(Math.max(0,a.credit-a.debit))})).filter(a=>a.debit||a.credit);
+}
+function calculateClosingBalances(){return calculateBalances(closingEntries());}
+function addEntry({date,origin,ref,description,lines,attachmentId=null,sourceKey='',counterparty='',nif='',rubric='',classification='',source='manual',silent=false}){
+  const clean=canonicalLines(lines);
+  const deb=round(clean.reduce((s,line)=>s+line.debit,0)),cred=round(clean.reduce((s,line)=>s+line.credit,0));
+  if(!date||!description||!clean.length||Math.abs(deb-cred)>0.009||deb<=0){if(!silent)toast('O lançamento não está equilibrado.');return false;}
+  const entry={id:uid(),date,origin,ref:ref||'',description,lines:clean,attachmentId,sourceKey:sourceKey||'',counterparty:counterparty||'',nif:String(nif||'').replace(/\D/g,''),rubric:rubric||'',classification:classification||'',source,createdAt:new Date().toISOString()};
+  state.entries.push(entry);
+  const account=(origin==='Venda / serviço'?clean.find(line=>accountDefinition(line.account)?.type==='revenue')?.account:clean.find(line=>accountDefinition(line.account)?.type==='expense'||line.account==='43')?.account)||'';
+  const kind=origin==='Venda / serviço'?'sale':origin==='Despesa'?'expense':origin==='Banco / caixa'?'bank':origin==='Impostos / contribuições'?'tax':'';
+  if(counterparty&&account&&kind)learnCounterparty({counterparty,nif,account,kind,description});
+  state.entries.sort((a,b)=>a.date.localeCompare(b.date)||a.createdAt.localeCompare(b.createdAt));
+  if(!silent){renderAll();toast('Lançamento registado com sucesso.');} return true;
+}
+function extractCompanyShareCapital(text){
+  const flat=normalizeSpaces(text);
+  const patterns=[
+    /capital\s+social(?:\s+(?:integralmente\s+)?(?:realizado|subscrito))?\s*(?:de|:|-)?\s*(?:EUR|EUROS?|€)?\s*([0-9][0-9.\s]*[,\.][0-9]{2}|[0-9][0-9.\s]*)/i,
+    /(?:EUR|EUROS?|€)\s*([0-9][0-9.\s]*[,\.][0-9]{2}|[0-9][0-9.\s]*)\s*(?:de\s+)?capital\s+social/i
+  ];
+  for(const re of patterns){const match=flat.match(re);const value=match?round(parseAmount(match[1])):0;if(value>0)return value;}
+  return 0;
+}
+function declaredCapitalFromLoadedData(){
+  const values=[];
+  const add=value=>{const n=round(parseAmount(value));if(n>0&&n<100000000000)values.push(n);};
+  add(state.profile?.shareCapital);
+  (state.attachments||[]).forEach(att=>{
+    add(att?.analysis?.companyData?.shareCapital);add(att?.analysis?.shareCapital);
+    add(extractCompanyShareCapital(`${att?.name||''} ${att?.note||''} ${att?.analysis?.textPreview||''}`));
+  });
+  (state.batchQueue||[]).forEach(proposal=>{
+    if(proposal.kind==='balance') (proposal.balanceLines||[]).forEach(line=>{if(accountDigits(line.account).startsWith('51'))add(line.credit);});
+  });
+  (state.entries||[]).forEach(entry=>{
+    const lines=canonicalLines(entry.lines);
+    lines.filter(line=>accountDigits(line.account).startsWith('51')&&line.credit>0).forEach(line=>add(line.credit));
+    if(/capital\s+(?:social|realizado|subscrito)/i.test(`${entry.description||''} ${entry.ref||''}`))add(Math.max(...lines.map(line=>Math.max(line.debit,line.credit)),0));
+  });
+  return values.length?Math.max(...values):0;
+}
+function hydrateDeclaredCapital(){
+  const value=declaredCapitalFromLoadedData();
+  if(value>0 && (!num(state.profile?.shareCapital)||num(state.profile.shareCapital)<=0))state.profile.shareCapital=value;
+  return value;
+}
+function drData(balances=calculateBalances()){
+  const revenueRoots=['71','72','73','74','75','76','77','78','79'];
+  const expenseRoots=['61','62','63','64','65','66','67','68','69','81'];
+  const revenueGroups=drGroupsForRoots(revenueRoots,'revenue',balances);
+  const expenseGroups=drGroupsForRoots(expenseRoots,'expense',balances);
+  const expenseAmount=prefixes=>drAmountForPrefixes(prefixes,'expense',balances);
+  const revenueAmount=prefixes=>drAmountForPrefixes(prefixes,'revenue',balances);
+  const lines={
+    salesServices:revenueAmount(['71','72']), operatingSubsidies:revenueAmount(['75']), affiliateResults:0,
+    inventoryVariation:revenueAmount(['73']), ownWork:revenueAmount(['74']), cogs:expenseAmount(['61']), externalSupplies:expenseAmount(['62']), staffCosts:expenseAmount(['63']),
+    inventoryImpairment:expenseAmount(['651']), receivableImpairment:expenseAmount(['652']), provisions:expenseAmount(['67']),
+    nonDepImpairment:expenseAmount(['653','654','655']), fairValueAdjustments:round(revenueAmount(['76'])-expenseAmount(['66'])),
+    otherIncome:revenueAmount(['78']), otherExpenses:expenseAmount(['68']), depreciation:expenseAmount(['64']), depImpairment:expenseAmount(['656','657','658','659']),
+    financialIncome:revenueAmount(['77','79']), financialExpenses:expenseAmount(['69']), incomeTax:expenseAmount(['81'])
+  };
+  const ebitda=round(lines.salesServices+lines.operatingSubsidies+lines.affiliateResults+lines.inventoryVariation+lines.ownWork+lines.fairValueAdjustments+lines.otherIncome-lines.cogs-lines.externalSupplies-lines.staffCosts-lines.inventoryImpairment-lines.receivableImpairment-lines.provisions-lines.nonDepImpairment-lines.otherExpenses);
+  const ebit=round(ebitda-lines.depreciation-lines.depImpairment);
+  const ebt=round(ebit+lines.financialIncome-lines.financialExpenses);
+  const result=round(ebt-lines.incomeTax);
+  const revenue=round(revenueRoots.reduce((sum,code)=>sum+revenueAmount([code]),0));
+  const expenses=round(expenseRoots.filter(code=>code!=='81').reduce((sum,code)=>sum+expenseAmount([code]),0));
+  return {revenueGroups,expenseGroups,revenue,expenses,result,lines,ebitda,ebit,ebt};
+}
+function balanceSections(balances=calculateClosingBalances()){
+  const by=(prefixes,kind)=>round((balances||[]).filter(a=>prefixes.some(p=>accountDigits(a.code)===String(p)||accountDigits(a.code).startsWith(String(p))))
+    .reduce((sum,a)=>sum+(kind==='asset'?a.balanceDebit:a.balanceCredit),0));
+  const dr=drData(calculateBalances());
+  const capitalLedger=by(['51'],'liability');
+  const declaredCapital=round(declaredCapitalFromLoadedData());
+  const capitalDisplay=capitalLedger>0?capitalLedger:declaredCapital;
+  const capitalFromDocument=capitalLedger<=0&&declaredCapital>0;
+  const assetNonCurrent=[
+    {label:'Ativos fixos tangíveis', value:by(['43'],'asset')},{label:'Propriedades de investimento', value:by(['42'],'asset')},
+    {label:'Goodwill', value:by(['441'],'asset')},{label:'Ativos intangíveis', value:by(['44'],'asset')},{label:'Ativos biológicos', value:by(['45'],'asset')},
+    {label:'Participações financeiras — método da equivalência patrimonial', value:by(['411','412','413'],'asset')},{label:'Acionistas / sócios', value:by(['47'],'asset')},
+    {label:'Outros investimentos financeiros', value:by(['41','46'],'asset')},{label:'Ativos por impostos diferidos', value:by(['48'],'asset')},{label:'Outras contas a receber', value:by(['49'],'asset')}
+  ];
+  const assetCurrent=[
+    {label:'Inventários', value:by(['31','32','33','34','35','36','38','39'],'asset')},{label:'Clientes', value:by(['21'],'asset')},
+    {label:'Adiantamentos a fornecedores', value:by(['37'],'asset')},{label:'Estado e outros entes públicos', value:by(['24'],'asset')},{label:'Acionistas / sócios', value:by(['26'],'asset')},
+    {label:'Outras contas a receber', value:by(['27','28'],'asset')},{label:'Diferimentos', value:0},{label:'Ativos financeiros detidos para negociação', value:0},
+    {label:'Outros ativos financeiros', value:0},{label:'Ativos não correntes detidos para venda', value:0},{label:'Caixa e depósitos bancários', value:by(['11','12'],'asset')}
+  ];
+  const equity=[
+    {label:'Capital realizado', value:capitalDisplay,source:capitalFromDocument?'certidão/documento':'balancete/livro'},
+    {label:'Ações (quotas) próprias', value:by(['52'],'liability')},{label:'Outros instrumentos de capital próprio', value:by(['53'],'liability')},
+    {label:'Prémios de emissão', value:by(['54'],'liability')},{label:'Reservas legais', value:by(['551'],'liability')},{label:'Outras reservas', value:by(['55'],'liability')-by(['551'],'liability')},
+    {label:'Resultados transitados', value:by(['56'],'liability')},{label:'Ajustamentos em ativos financeiros', value:by(['57'],'liability')},{label:'Excedentes de revalorização', value:by(['58'],'liability')},
+    {label:'Outras variações no capital próprio', value:by(['59'],'liability')},{label:'Resultado líquido do período', value:dr.result}
+  ];
+  const liabilityNonCurrent=[{label:'Provisões', value:by(['29'],'liability')},{label:'Financiamentos obtidos', value:by(['25'],'liability')},{label:'Responsabilidades por benefícios pós-emprego', value:0},{label:'Passivos por impostos diferidos', value:0},{label:'Outras contas a pagar', value:0}];
+  const liabilityCurrent=[{label:'Fornecedores', value:by(['22'],'liability')},{label:'Adiantamentos de clientes', value:0},{label:'Estado e outros entes públicos', value:by(['24'],'liability')},{label:'Acionistas / sócios', value:by(['26'],'liability')},{label:'Financiamentos obtidos', value:0},{label:'Outras contas a pagar', value:by(['23','27','28'],'liability')},{label:'Diferimentos', value:0},{label:'Passivos financeiros detidos para negociação', value:0},{label:'Outros passivos financeiros', value:0},{label:'Passivos não correntes detidos para venda', value:0}];
+  const sum=rows=>round(rows.reduce((s,row)=>s+row.value,0));
+  return {assetNonCurrent,assetCurrent,equity,liabilityNonCurrent,liabilityCurrent,totalAssetNonCurrent:sum(assetNonCurrent),totalAssetCurrent:sum(assetCurrent),totalAssets:round(sum(assetNonCurrent)+sum(assetCurrent)),totalEquity:sum(equity),totalLiabilityNonCurrent:sum(liabilityNonCurrent),totalLiabilityCurrent:sum(liabilityCurrent),totalLiabilities:round(sum(liabilityNonCurrent)+sum(liabilityCurrent)),totalEquityLiabilities:round(sum(equity)+sum(liabilityNonCurrent)+sum(liabilityCurrent)),capitalLedger,declaredCapital,capitalFromDocument};
+}
+function strictCsvValue(row={},names=[]){
+  const keys=Object.keys(row||{});
+  for(const name of names){
+    const hit=keys.find(key=>norm(key)===norm(name));
+    if(hit!==undefined&&String(row[hit]??'').trim()!=='')return row[hit];
+  }
+  return '';
+}
+function csvBalanceAmounts(row={}){
+  const debitRaw=strictCsvValue(row,['saldo devedor','saldo final devedor','saldo devedor final','saldo débito','saldo debito','débito','debito','movimentos a débito','movimentos a debito']);
+  const creditRaw=strictCsvValue(row,['saldo credor','saldo final credor','saldo credor final','saldo crédito','saldo credito','crédito','credito','movimentos a crédito','movimentos a credito']);
+  let debit=parseAmount(debitRaw),credit=parseAmount(creditRaw);
+  if(!debit&&!credit){
+    const singleRaw=strictCsvValue(row,['saldo final','saldo','valor','montante']);
+    const single=parseAmount(singleRaw);
+    const nature=norm(strictCsvValue(row,['natureza','dc','d/c','debito credito','débito crédito','sinal']));
+    const type=accountDefinition(csvAccountCode(row)).type;
+    if(single){
+      if(/cred|^c$|credito/.test(nature)||(!nature&&['liability','equity','revenue'].includes(type)))credit=single;
+      else debit=single;
+    }
+  }
+  return {debit:round(debit),credit:round(credit)};
+}
+function csvAccountCode(row={}){
+  const raw=String(csvValue(row,['conta','conta contabilistica','conta contabilística','codigo','código','codigo conta','código conta','n conta','n.º conta','designacao conta','designação conta','nome da conta','rubrica','descricao','descrição','designacao','designação','nome'])||'').trim();
+  const code=raw.match(/\b[1-8][0-9]{0,7}(?:[.][0-9]{1,4})?\b/)?.[0]||'';
+  return canonicalLedgerAccount(code||accountCodeFromLabel(raw));
+}
+function isAccountingBalanceCsv(rows=[]){
+  if(!rows.length)return false;
+  const headers=norm(Object.keys(rows[0]||{}).join(' '));
+  const hasAccount=/conta|codigoconta|codigo|nconta|rubrica|designacao|descricao|nomeconta/.test(headers);
+  const hasBalances=/saldodevedor|saldocredor|debito|credito|saldofinal|saldo|valor|montante/.test(headers);
+  const sample=rows.slice(0,50);const valid=sample.filter(row=>isSNCAccountCode(csvAccountCode(row))).length;
+  const hasDocuments=/documento|fatura|factura|atcud/.test(headers);
+  return hasAccount&&hasBalances&&valid>=1&&!hasDocuments;
+}
+function buildBalanceCsvProposal({rows=[],file=null,attachmentId=null,rawText=''}){
+  let items=rows.map((row,index)=>{const account=csvAccountCode(row), amounts=csvBalanceAmounts(row);return {account,debit:amounts.debit,credit:amounts.credit,index};}).filter(item=>isSNCAccountCode(item.account)&&(item.debit>0||item.credit>0));
+  items=items.filter(item=>!items.some(other=>other.account!==item.account&&childAccountOf(other.account,item.account)));
+  const debit=round(items.reduce((sum,item)=>sum+item.debit,0)),credit=round(items.reduce((sum,item)=>sum+item.credit,0)),difference=round(debit-credit);
+  if(Math.abs(difference)>0.01)items.push(difference>0?{account:'999',debit:0,credit:difference,generated:true}:{account:'999',debit:Math.abs(difference),credit:0,generated:true});
+  const date=csvDate(csvValue(rows[0]||{},['data','data referencia','data de referencia','data fim','data final'])||today);
+  const sourceName=file?.name||'Balancete CSV';
+  const proposal={id:uid(),attachmentId:attachmentId||null,sourceKey:`${attachmentId||sourceName}:balance`,name:sourceName,kind:'balance',account:'56',payment:'',entity:'',nif:'',date,ref:`Importação ${sourceName}`.slice(0,80),description:`Importação de balancete / saldos — ${sourceName}`,base:Math.max(debit,credit),vatRate:0,total:Math.max(debit,credit),balanceLines:items.map(item=>({account:item.account,debit:item.debit,credit:item.credit})),balanceLineCount:items.length,confidence:'Alta — contas e saldos identificados',reason:`Balancete contabilístico importado com ${items.length} conta(s)${Math.abs(difference)>0.01?` · diferença de conferência ${money(Math.abs(difference))} compensada na conta técnica 999, sem afetar a DR ou o Balanço`:''}`,postingEligible:items.length>0,documentType:'balancete',createdAt:new Date().toISOString(),registered:false,textChars:String(rawText||'').length,textAvailable:true};
+  proposal.needsReview=proposalNeedsReview(proposal);proposal.checked=proposalIsComplete(proposal);return proposal;
+}
+function entryFromBatchProposal(proposal){
+  if(!proposal||proposal.postingEligible===false)return null;
+  const meta={date:proposal.date,ref:proposal.ref,description:proposal.description,attachmentId:proposal.attachmentId,sourceKey:proposal.sourceKey||'',counterparty:proposal.entity,nif:proposal.nif,classification:`${proposal.reason||'Classificação automática'} · ${proposal.confidence||'provisória'}`,source:'automatic'};
+  if(proposal.kind==='balance')return {...meta,origin:'Importação de balancete',rubric:'Saldos contabilísticos importados',lines:canonicalLines(proposal.balanceLines||[])};
+  const account=canonicalLedgerAccount(proposal.account),payment=canonicalLedgerAccount(proposal.payment),base=num(proposal.base),vat=num(proposal.vatRate);
+  if(proposal.kind==='sale')return makeSale({...meta,revenue:accountDefinition(account)?.type==='revenue'?account:revenueAccountFromText(`${proposal.description||''} ${proposal.name||''}`),payment:payment||'211',base,vatRate:vat});
+  if(proposal.kind==='bank'){const direction=proposal.bankDirection||(['12','11'].includes(payment)?'in':'out');const counterpart=['12','11'].includes(payment)?account:payment;return makeBank({...meta,direction,bank:payment==='11'?'11':'12',counterpart:counterpart||'221',amount:base});}
+  if(proposal.kind==='tax'){const taxAccount=account==='635'?'635':'68';const credit=['11','12'].includes(payment)?payment:'245';return {...meta,origin:'Impostos / contribuições',rubric:accountLabel(taxAccount),lines:[{account:taxAccount,debit:base},{account:credit,credit:base}]};}
+  return makeExpense({...meta,expense:accountDefinition(account)?.type==='expense'||account==='43'?account:'62',payment:payment||'221',base,vatRate:vat});
+}
+function repairStoredEntries({mutate=true}={}){
+  let canonicalised=0,salesFixed=0;
+  (state.entries||[]).forEach(entry=>{
+    const clean=canonicalLines(entry.lines);
+    const changed=JSON.stringify(clean)!==JSON.stringify(entry.lines||[]);
+    if(mutate&&changed){entry.lines=clean;canonicalised++;}
+    const view={...entry,lines:clean};
+    if(entryIsSalesEvidence(view)&&!entryHasRevenueCredit(view)){
+      const repaired=reportingLinesForEntry(view);
+      if(repaired.length&&JSON.stringify(repaired)!==JSON.stringify(clean)){
+        if(mutate){entry.lines=repaired;entry.origin='Venda / serviço';const revenue=repaired.find(line=>accountDefinition(line.account)?.type==='revenue')?.account||'72';entry.rubric=accountLabel(revenue);entry.classification=`${entry.classification?`${entry.classification} · `:''}Reconciliação automática para ${accountLabel(revenue)}`;}
+        salesFixed++;
+      }
+    }
+  });
+  if(mutate)hydrateDeclaredCapital();
+  return {canonicalised,salesFixed};
+}
+let __financialReconcileLock=false;
+async function reconcileFinancialStatements({silent=false}={}){
+  if(__financialReconcileLock)return {busy:true};__financialReconcileLock=true;
+  const buttons=[...document.querySelectorAll('[data-reconcile-financial]')];buttons.forEach(button=>{button.disabled=true;button.textContent='A reconciliar…';});
+  try{
+    let scan=0;
+    for(const att of (state.attachments||[])){
+      if(!att?.dataUrl)continue;
+      try{
+        const file=await fileFromAttachment(att);const extracted=await extractTextFromFile(file);if(!extracted)continue;
+        const companyData=extractCompanyData(extracted);
+        const score=companyDocumentScore(att,extracted);
+        att.analysis={...(att.analysis||{}),textPreview:extracted.slice(0,12000),textChars:extracted.length,extractedAt:new Date().toISOString(),companyData:{...(att.analysis?.companyData||{}),...companyData},companyCandidate:score.score>=38||att.category==='Dados da empresa'};
+        scan++;
+      }catch{}
+    }
+    const candidates=(state.attachments||[]).map(att=>({data:att.analysis?.companyData||{},score:att.analysis?.companyCandidate?100:0})).filter(item=>Object.values(item.data||{}).some(Boolean));
+    if(candidates.length)applyExtractedCompanyData(candidates);
+    const first=repairStoredEntries({mutate:true});
+    const recovered=await createMissingSalesEntriesFromAttachments();
+    const second=repairStoredEntries({mutate:true});
+    hydrateDeclaredCapital();fillAccountSelects();renderAll();
+    if(!silent)toast(`Reconciliação concluída: ${first.salesFixed+second.salesFixed} venda(s) corrigida(s)${recovered.created?` · ${recovered.created} venda(s) criada(s)`:''}${state.profile.shareCapital?` · capital social ${money(state.profile.shareCapital)}`:''}${scan?` · ${scan} anexo(s) lido(s)`:''}.`);
+    return {first,recovered,second,scan};
+  }finally{__financialReconcileLock=false;buttons.forEach(button=>{button.disabled=false;button.textContent='Reconciliar DR, balanço e capital';});}
+}
+async function synchroniseReportsAndPeriod(){
+  const button=$('syncReportsBtn');if(button){button.disabled=true;button.textContent='A sincronizar…';}
+  try{
+    await reconcileFinancialStatements({silent:true});
+    const salesNow=drData(calculateBalances()).lines.salesServices;const year=dominantSalesYear();
+    if(salesNow<=0.004&&year){state.profile.from=`${year}-01-01`;state.profile.to=`${year}-12-31`;state.profile.year=Number(year);if($('periodFrom'))$('periodFrom').value=state.profile.from;if($('periodTo'))$('periodTo').value=state.profile.to;renderAll();}
+    toast(`DR sincronizada. Vendas e serviços 71/72: ${money(drData(calculateBalances()).lines.salesServices)}.`);
+  }finally{if(button){button.disabled=false;button.textContent='Sincronizar vendas e período';}}
+}
+async function synchroniseBalanceData(){
+  const button=$('syncBalanceBtn');if(button){button.disabled=true;button.textContent='A sincronizar…';}
+  try{await reconcileFinancialStatements({silent:true});const s=balanceSections(calculateClosingBalances());toast(`Balanço sincronizado. Capital realizado: ${money(s.equity[0]?.value||0)}.`);}finally{if(button){button.disabled=false;button.textContent='Sincronizar capital e saldos';}}
+}
+function renderAll(){
+  hydrateDeclaredCapital();
+  if($('companyName')){
+    $('companyName').value=state.profile.companyName||'';$('companyNif').value=state.profile.nif||'';$('companyAddress').value=state.profile.address||'';$('companyPostal').value=state.profile.postalCode||'';$('companyLocality').value=state.profile.locality||'';$('companyCaePrimary').value=state.profile.caePrimary||'';$('companyCaeSecondary').value=state.profile.caeSecondary||'';$('companyRegistryDate').value=state.profile.registryDate||'';if($('companyShareCapital'))$('companyShareCapital').value=num(state.profile.shareCapital)>0?String(state.profile.shareCapital).replace('.',','):'';$('companyYear').value=state.profile.year||defaultYear;
+  }
+  renderHeader();renderDashboard();renderEntryList();renderTrial();renderIncome();renderBalance();renderTaxData();renderAttachments();renderAutoRules();renderAutoBatchQueue();renderCompanyDocumentStatus();
+}
+function importJSON(file){
+  const reader=new FileReader();reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);if(!data||!Array.isArray(data.entries))throw new Error();
+      state={profile:{...blankState().profile,...data.profile},entries:data.entries||[],attachments:(data.attachments||[]).map(att=>({...att,url:att.dataUrl||null})),counterpartyRules:data.counterpartyRules||{},subaccounts:data.subaccounts||{},batchQueue:data.batchQueue||[]};
+      repairStoredEntries({mutate:true});hydrateDeclaredCapital();fillAccountSelects();renderAll();toast(`${data.attachmentsIncluded?'Dados e anexos importados.':'Dados importados.'} A DR, o balanço e o capital serão reconciliados automaticamente.`);
+      setTimeout(()=>reconcileFinancialStatements({silent:false}),80);
+    }catch{toast('Não foi possível importar este ficheiro JSON.');}
+  };reader.readAsText(file,'utf-8');
+}
 function init(){
   setFormDates();fillAccountSelects();
   $('companyName').value=state.profile.companyName||'';$('companyNif').value=state.profile.nif||'';$('companyAddress').value=state.profile.address||'';$('companyPostal').value=state.profile.postalCode||'';$('companyLocality').value=state.profile.locality||'';$('companyCaePrimary').value=state.profile.caePrimary||'';$('companyCaeSecondary').value=state.profile.caeSecondary||'';$('companyRegistryDate').value=state.profile.registryDate||'';if($('companyShareCapital'))$('companyShareCapital').value=num(state.profile.shareCapital)>0?String(state.profile.shareCapital).replace('.',','):'';$('companyYear').value=state.profile.year;
@@ -2132,5 +2518,973 @@ function init(){
 }
 init();
 </script>
+<script>
+/* Patch e-Fatura: importação por linha, IVA exato, notas de crédito e reconciliação de vendas. */
+(function(){
+  const originalProposalsFromFile = window.proposalsFromFile;
+  const originalEntryFromBatchProposal = window.entryFromBatchProposal;
+  const originalRenderIncome = window.renderIncome;
+  const originalRenderBalance = window.renderBalance;
+
+  function efHeaderKeys(rows){ return Object.keys(rows?.[0]||{}).map(k=>norm(k)).join(' '); }
+  function efIsRevenue(rows){ const h=efHeaderKeys(rows); return h.includes('nifadquirente') && h.includes('basetributavel') && h.includes('dataemissao'); }
+  function efIsExpense(rows){ const h=efHeaderKeys(rows); return h.includes('emitente') && h.includes('tipo') && h.includes('basetributavel'); }
+  function efVal(row, names){
+    const keys=Object.keys(row||{});
+    for(const n of names){ const key=norm(n); const hit=keys.find(k=>norm(k)===key); if(hit!==undefined && String(row[hit]||'').trim()) return row[hit]; }
+    return '';
+  }
+  function efRef(row,index){ return normalizeSpaces(efVal(row,['nº documento / atcud','n documento atcud','numero documento atcud','nº fatura / atcud','n fatura atcud','numero fatura atcud','documento'])) || `Linha ${index+2}`; }
+  function efRate(base,vat){
+    if(!base||!vat)return 0;
+    const candidate=round((vat/base)*100);
+    const standard=[6,13,23].find(v=>Math.abs(candidate-v)<0.55);
+    return standard||candidate;
+  }
+  function efExpenseAccount(entity,ref){
+    const h=norm(`${entity||''} ${ref||''}`);
+    if(/goldenergy|energia|electricidade/.test(h))return '6241';
+    if(/combustivel|gasolina|gasoleo|diesel|repsol|galp|bp/.test(h))return '6242';
+    if(/supermesura|superfoz|supermerc|restaurante|cafe|hotelaria|iberusa/.test(h))return '611';
+    if(/anacristina|maio|contabil|honorario/.test(h))return '6221';
+    return '62';
+  }
+  function efProposal(row,index,file,attachmentId,kind){
+    const ref=efRef(row,index);
+    const date=csvDate(efVal(row,['data emissao','data emissão','data']));
+    const base=round(parseAmount(efVal(row,['base tributavel','base tributável'])));
+    const vatValue=round(parseAmount(efVal(row,['iva'])));
+    const total=round(parseAmount(efVal(row,['total'])));
+    let nif='',entity='',account='',creditNote=false;
+    if(kind==='sale'){
+      nif=cleanNif(efVal(row,['nif adquirente','nif']));
+      entity=nif?`Cliente NIF ${nif}`:'Cliente por identificar';
+      account='72';
+    }else{
+      const raw=normalizeSpaces(efVal(row,['emitente','fornecedor']));
+      nif=cleanNif((raw.match(/\b\d{9}\b/)||[])[0]||efVal(row,['nif emitente','nif fornecedor','nif']));
+      entity=raw.replace(/^\s*\d{9}\s*-\s*/,'').trim()||`Fornecedor NIF ${nif||'por identificar'}`;
+      account=efExpenseAccount(entity,ref);
+      const type=norm(efVal(row,['tipo']));
+      creditNote=/notadecredito|credit/.test(type)||/^nc\b/i.test(ref);
+    }
+    const safeRef=ref.replace(/\s+/g,' ').slice(0,90);
+    const sourceKey=`${attachmentId||file?.name||'efatura'}:${kind}:${safeRef}`;
+    return {
+      id:uid(), attachmentId:attachmentId||null, sourceKey, name:`${file?.name||'e-Fatura'} · ${safeRef}`,
+      kind, account, payment:kind==='sale'?'211':'221', entity,nif,date,ref:safeRef,
+      description:kind==='sale'?`e-Fatura receita — ${safeRef}`:`e-Fatura ${creditNote?'nota de crédito':'despesa'} — ${safeRef}`,
+      base, vatRate:efRate(base,vatValue), vatValue,total,
+      creditNote, postingEligible:base>0&&total>0&&!!date, documentType:kind==='sale'?'efatura_receita':'efatura_despesa',
+      confidence:'Alta — linha e-Fatura',reason:kind==='sale'?'Fatura emitida: receita contabilizada em 72 e IVA liquidado em 2433':(creditNote?'Nota de crédito: inversão da despesa e do IVA dedutível':'Fatura recebida: despesa, IVA dedutível e fornecedor'),
+      createdAt:new Date().toISOString(),registered:false,checked:base>0&&total>0&&!!date
+    };
+  }
+  window.proposalsFromFile = async function(args={}){
+    const file=args.file;
+    if(file && fileExtension(file)==='csv'){
+      const raw=await file.text();
+      const rows=parseCSV(raw);
+      if(efIsRevenue(rows)||efIsExpense(rows)){
+        const kind=efIsRevenue(rows)?'sale':'expense';
+        const proposals=[];let ignored=0;
+        rows.forEach((row,index)=>{const p=efProposal(row,index,file,args.attachmentId,kind);if(p.postingEligible)proposals.push(p);else ignored++;});
+        if(kind==='sale' && proposals.length){const y=String(proposals[0].date||'').slice(0,4);if(/^20\d\d$/.test(y)){state.profile.from=`${y}-01-01`;state.profile.to=`${y}-12-31`;state.profile.year=Number(y);}}
+        return {proposals,rawText:raw,rowCount:rows.length,ignoredRows:ignored,isCsv:true,isEFatura:true};
+      }
+    }
+    return originalProposalsFromFile(args);
+  };
+  window.entryFromBatchProposal = function(proposal){
+    if(proposal && (proposal.documentType==='efatura_receita'||proposal.documentType==='efatura_despesa')){
+      const base=round(proposal.base),vat=round(proposal.vatValue||0),total=round(proposal.total||base+vat);
+      const meta={date:proposal.date,ref:proposal.ref,description:proposal.description,attachmentId:proposal.attachmentId,sourceKey:proposal.sourceKey,counterparty:proposal.entity,nif:proposal.nif,rubric:accountLabel(proposal.account),classification:proposal.reason,source:'automatic'};
+      if(proposal.kind==='sale'){
+        const client=accountWithCounterparty('211',proposal.entity,proposal.nif,true);
+        return {...meta,origin:'Venda / serviço',lines:[{account:client,debit:total},{account:'72',credit:base},...(vat?[{account:'2433',credit:vat}]:[])]};
+      }
+      const supplier=accountWithCounterparty('221',proposal.entity,proposal.nif,true);
+      if(proposal.creditNote){
+        return {...meta,origin:'Despesa',lines:[{account:supplier,debit:total},{account:proposal.account,credit:base},...(vat?[{account:'2432',credit:vat}]:[])]};
+      }
+      return {...meta,origin:'Despesa',lines:[{account:proposal.account,debit:base},...(vat?[{account:'2432',debit:vat}]:[]),{account:supplier,credit:total}]};
+    }
+    return originalEntryFromBatchProposal(proposal);
+  };
+  async function eFaturaReprocess(){
+    const attachments=(state.attachments||[]).filter(a=>a?.dataUrl&&fileExtension(a)==='csv');
+    let candidates=[];
+    for(const att of attachments){
+      try{
+        const file=await fileFromAttachment(att); const rows=parseCSV(await file.text());
+        if(efIsRevenue(rows)||efIsExpense(rows)) candidates.push({att,file,rows,kind:efIsRevenue(rows)?'sale':'expense'});
+      }catch{}
+    }
+    if(!candidates.length){toast('Não foram encontrados CSV e-Fatura nos anexos.');return;}
+    const ids=new Set(candidates.map(x=>x.att.id));
+    state.entries=(state.entries||[]).filter(e=>!(ids.has(e.attachmentId)&&String(e.source||'')==='automatic'));
+    state.batchQueue=(state.batchQueue||[]).filter(p=>!ids.has(p.attachmentId));
+    let created=0,ignored=0;
+    for(const item of candidates){
+      const proposals=item.rows.map((r,i)=>efProposal(r,i,item.file,item.att.id,item.kind)).filter(p=>p.postingEligible);
+      item.att.category=item.kind==='sale'?'e-Fatura receita':'e-Fatura despesas';
+      item.att.analysis={...(item.att.analysis||{}),status:'analyzed',isCsv:true,isEFatura:true,rowCount:item.rows.length,proposalCount:proposals.length,processedAt:new Date().toISOString()};
+      proposals.forEach(p=>{
+        state.batchQueue.push(p);
+        const e=window.entryFromBatchProposal(p);
+        if(e&&addEntry({...e,silent:true})){markBatchProposalRegistered(p.id,'automatic');created++;}else ignored++;
+      });
+    }
+    const sales=state.entries.filter(e=>e.origin==='Venda / serviço');
+    const years=sales.map(e=>String(e.date||'').slice(0,4)).filter(y=>/^20\d\d$/.test(y));
+    if(years.length){const y=years.sort((a,b)=>years.filter(x=>x===b).length-years.filter(x=>x===a).length)[0];state.profile.from=`${y}-01-01`;state.profile.to=`${y}-12-31`;state.profile.year=Number(y);}
+    fillAccountSelects();renderAll();toast(`e-Fatura sincronizado: ${created} lançamento(s) criados; ${ignored} ignorado(s). Vendas 71/72 foram atualizadas.`);
+  }
+  window.eFaturaReprocess=eFaturaReprocess;
+  function replaceActionButton(id,label,fn,cls='btn danger'){
+    const old=$(id);if(!old)return;const fresh=old.cloneNode(true);fresh.textContent=label;fresh.className=cls;old.replaceWith(fresh);fresh.addEventListener('click',fn);
+  }
+  replaceActionButton('autoRebuildAllBtn','Sincronizar CSV e-Fatura',eFaturaReprocess,'btn primary');
+  replaceActionButton('autoLoadAttachmentsBtn','Ler anexos e-Fatura existentes',eFaturaReprocess,'btn');
+
+  window.renderIncome=function(){
+    originalRenderIncome();
+    const target=$('incomeReport');if(!target)return;
+    const receipts=(state.attachments||[]).filter(a=>a.analysis?.isEFatura&&a.category==='e-Fatura receita');
+    if(receipts.length){const d=drData(calculateBalances());const notice=document.createElement('div');notice.className='alert success no-print';notice.style.marginBottom='14px';notice.innerHTML=`<b>Receita e-Fatura sincronizada:</b> ${receipts.length} CSV de receita processado(s). A rubrica 71/72 soma atualmente <b>${money(d.lines.salesServices)}</b> no período selecionado.`;target.prepend(notice);}
+  };
+  window.renderBalance=function(){
+    originalRenderBalance();
+    const target=$('balanceReport');if(!target)return;
+    const capital=Number(state.profile?.shareCapital||0);
+    const box=document.createElement('div');box.className=`alert ${capital>0?'success':'warning'} no-print`;box.style.marginBottom='14px';box.innerHTML=capital>0?`<b>Capital social apresentado:</b> ${money(capital)}. Fonte: dado introduzido ou documento de empresa analisado.`:`<b>Capital social não apurado pelos anexos atuais.</b> Os CSV e-Fatura, declarações de IVA, plano prestacional e mapa de vendas não indicam o capital social. Anexe a certidão permanente/balancete ou preencha “Capital social (€)” na Visão geral.`;target.prepend(box);
+  };
+})();
+
+/* === Balancete completo e reconciliação de capital por certidão === */
+(function(){
+  const baseRenderTrial = window.renderTrial;
+  const baseRenderBalance = window.renderBalance;
+
+  function rounded(v){ return typeof round==='function' ? round(Number(v||0)) : Math.round(Number(v||0)*100)/100; }
+  function reportingBalances(base){
+    const map=new Map((base||[]).map(row=>[String(row.code),{...row,debit:rounded(row.debit),credit:rounded(row.credit)}]));
+    const totalCredit=(prefix)=>[...map.values()].filter(row=>accountDigits(row.code).startsWith(prefix)).reduce((s,row)=>s+Math.max(0,Number(row.credit||0)-Number(row.debit||0)),0);
+    const declared=rounded(Number(state.profile?.shareCapital||0));
+    const posted=rounded(totalCredit('51'));
+    const missing=rounded(Math.max(0,declared-posted));
+    const add=(code,name,type,debit=0,credit=0,source='')=>{
+      const current=map.get(code)||{...accountDefinition(code),code,name,type,debit:0,credit:0};
+      current.name=name||current.name;current.type=type||current.type;current.debit=rounded(current.debit+debit);current.credit=rounded(current.credit+credit);current.virtual=source||current.virtual||'';map.set(code,current);
+    };
+    // Sem balancete de abertura, a certidão só prova o capital. Para não desequilibrar os mapas,
+    // apresenta-se a contrapartida provisória em 261 (capital subscrito a realizar), nunca em banco.
+    if(missing>0.004){
+      add('261.999','Sócios — capital social por realizar (certidão)','asset',missing,0,'Certidão permanente');
+      add('511.999','Capital social identificado na certidão','equity',0,missing,'Certidão permanente');
+    }
+    return [...map.values()].map(row=>({
+      ...row,
+      debit:rounded(row.debit),credit:rounded(row.credit),
+      balanceDebit:rounded(Math.max(0,row.debit-row.credit)),
+      balanceCredit:rounded(Math.max(0,row.credit-row.debit))
+    }));
+  }
+
+  function fullAnalyticRows(balances){
+    const byCode=Object.fromEntries((balances||[]).map(row=>[String(row.code),row]));
+    const known=new Map((ACCOUNTS||[]).map(row=>[String(row.code),{...row}]));
+    const dynamic={};
+    const addChild=(parent,row)=>{(dynamic[parent]??=[]).push(row);};
+
+    // Subcontas criadas pela aplicação.
+    Object.values(state.subaccounts||{}).forEach(row=>addChild(String(row.parent||''),{...row,kind:'subaccount'}));
+
+    // Contas importadas ou virtuais que não constam do plano reduzido passam a ser exibidas
+    // sob a respetiva conta SNC, em vez de desaparecerem do balancete.
+    (balances||[]).forEach(row=>{
+      const code=String(row.code);
+      if(known.has(code))return;
+      const digits=accountDigits(code);
+      const candidates=[...known.keys()].filter(parent=>parent!==code && digits.startsWith(accountDigits(parent))).sort((a,b)=>accountDigits(b).length-accountDigits(a).length);
+      const parent=candidates[0]||'';
+      if(parent)addChild(parent,{...row,kind:row.virtual?'document':'imported'});
+      else known.set(code,{...row,kind:row.virtual?'document':'imported'});
+    });
+
+    const staticChildren={};
+    [...known.values()].forEach(row=>{
+      const code=String(row.code);
+      const candidates=[...known.keys()].filter(parent=>parent!==code&&accountDigits(code).startsWith(accountDigits(parent))).sort((a,b)=>accountDigits(b).length-accountDigits(a).length);
+      const parent=candidates[0]||'';
+      if(parent)(staticChildren[parent]??=[]).push(row);
+    });
+    Object.values(staticChildren).forEach(list=>list.sort((a,b)=>String(a.code).localeCompare(String(b.code),undefined,{numeric:true})));
+    Object.values(dynamic).forEach(list=>list.sort((a,b)=>String(a.code).localeCompare(String(b.code),undefined,{numeric:true})));
+
+    const roots=[...known.values()].filter(row=>!Object.values(staticChildren).flat().some(child=>String(child.code)===String(row.code))).sort((a,b)=>String(a.code).localeCompare(String(b.code),undefined,{numeric:true}));
+    const rowFor=(def)=>byCode[String(def.code)]||{...def,debit:0,credit:0,balanceDebit:0,balanceCredit:0};
+    const children=(code)=>[...(staticChildren[code]||[]),...(dynamic[code]||[])];
+    const aggregate=(def)=>{
+      const own=rowFor(def);const childRows=children(String(def.code));
+      const kids=childRows.map(aggregate);
+      const debit=rounded(Number(own.debit||0)+kids.reduce((s,row)=>s+row.debit,0));
+      const credit=rounded(Number(own.credit||0)+kids.reduce((s,row)=>s+row.credit,0));
+      return {debit,credit,balanceDebit:rounded(Math.max(0,debit-credit)),balanceCredit:rounded(Math.max(0,credit-debit))};
+    };
+    const out=[];
+    const walk=(def,level=0)=>{
+      const own=rowFor(def);const kids=children(String(def.code));const totals=aggregate(def);
+      const hasKids=kids.length>0;
+      const isStatic=known.has(String(def.code));
+      const line=hasKids?totals:own;
+      out.push({...def,...line,level,kind:hasKids?'group':(def.kind||(!isStatic?'imported':'detail'))});
+      kids.forEach(kid=>walk(kid,level+1));
+    };
+    roots.forEach(root=>walk(root,0));
+    return out;
+  }
+
+  function periodCoverage(){
+    const {from,to}=getPeriod();
+    const all=state.entries||[];
+    const inside=all.filter(e=>(!from||e.date>=from)&&(!to||e.date<=to));
+    const outside=all.filter(e=>!inside.includes(e));
+    const count=(list,needle)=>list.filter(e=>String(e.origin||'').toLowerCase().includes(needle)).length;
+    const years=[...new Set(all.map(e=>String(e.date||'').slice(0,4)).filter(y=>/^20\d\d$/.test(y)))].sort();
+    const outsideYears=[...new Set(outside.map(e=>String(e.date||'').slice(0,4)).filter(y=>/^20\d\d$/.test(y)))].sort();
+    return {from,to,inside,outside,years,outsideYears,sales:count(inside,'venda'),expenses:count(inside,'despesa'),bank:count(inside,'banco'),taxes:count(inside,'imposto')};
+  }
+
+  function renderTrialToolbar(coverage){
+    const page=document.getElementById('page-trial');if(!page)return;
+    let box=document.getElementById('trialPeriodToolbar');
+    if(!box){box=document.createElement('div');box.id='trialPeriodToolbar';box.className='alert info no-print';box.style.margin='0 0 16px';const intro=page.querySelector('.page-intro');intro?.insertAdjacentElement('afterend',box);}
+    const years=coverage.years;
+    box.innerHTML=`<b>Conferência dos dados carregados:</b> ${coverage.sales} venda(s), ${coverage.expenses} despesa(s), ${coverage.bank} movimento(s) de banco e ${coverage.taxes} imposto(s) no período selecionado. ${coverage.outsideYears.length?`Existem ${coverage.outside.length} lançamento(s) carregados fora deste período (${coverage.outsideYears.join(', ')}).`:''}<div style="margin-top:9px;display:flex;gap:7px;flex-wrap:wrap">${years.map(year=>`<button class="btn" type="button" data-trial-year="${year}">Mostrar ${year}</button>`).join('')}<button class="btn" type="button" data-trial-all="1">Todos os movimentos carregados</button></div>`;
+    box.querySelectorAll('[data-trial-year]').forEach(btn=>btn.onclick=()=>{const y=btn.dataset.trialYear;state.profile.from=`${y}-01-01`;state.profile.to=`${y}-12-31`;state.profile.year=Number(y);renderAll();});
+    box.querySelector('[data-trial-all]')?.addEventListener('click',()=>{const dates=(state.entries||[]).map(e=>e.date).filter(Boolean).sort();if(dates.length){state.profile.from=dates[0];state.profile.to=dates[dates.length-1];renderAll();}});
+  }
+
+  window.renderTrial=function(){
+    const actual=calculateBalances();
+    const balances=reportingBalances(actual);
+    const rows=fullAnalyticRows(balances);
+    const totalD=rounded(balances.reduce((s,row)=>s+Number(row.debit||0),0));
+    const totalC=rounded(balances.reduce((s,row)=>s+Number(row.credit||0),0));
+    const balanceD=rounded(balances.reduce((s,row)=>s+Number(row.balanceDebit||0),0));
+    const balanceC=rounded(balances.reduce((s,row)=>s+Number(row.balanceCredit||0),0));
+    const valid=Math.abs(totalD-totalC)<0.01&&Math.abs(balanceD-balanceC)<0.01;
+    const coverage=periodCoverage();
+    const rowHtml=rows.map(row=>{
+      const name=escapeHTML(row.name||accountDefinition(row.code).name||'Conta');
+      const indent=Math.min(Number(row.level||0),3)*22;
+      const note=row.virtual?` <span class="badge manual">${escapeHTML(row.virtual)}</span>`:'';
+      const style=`padding-left:${8+indent}px`;
+      const cls=row.kind==='group'?'analytic-group':(row.virtual?'analytic-document':'');
+      return `<tr class="${cls}"><td>${escapeHTML(row.code)}</td><td style="${style}">${name}${note}</td><td>${row.entity?escapeHTML(row.entity):'—'}</td><td class="num">${money(row.debit||0)}</td><td class="num">${money(row.credit||0)}</td><td class="num">${row.balanceDebit?money(row.balanceDebit):'—'}</td><td class="num">${row.balanceCredit?money(row.balanceCredit):'—'}</td></tr>`;
+    }).join('');
+    $('trialReport').innerHTML=reportHeading('Balancete analítico completo com subcontas')+
+      `<div class="status-line no-print"><span class="dot ${valid?'':'warn'}"></span>${valid?'Balancete equilibrado.':'Atenção: existem diferenças no balancete.'}</div>`+
+      `<div class="trial-summary"><div class="metric"><span>Contas apresentadas</span><b>${rows.length}</b></div><div class="metric"><span>Movimentos a débito</span><b>${money(totalD)}</b></div><div class="metric"><span>Movimentos a crédito</span><b>${money(totalC)}</b></div></div>`+
+      `<table class="report-table"><thead><tr><th>Código</th><th>Conta / subconta</th><th>Entidade</th><th class="num">Mov. débito</th><th class="num">Mov. crédito</th><th class="num">Saldo devedor</th><th class="num">Saldo credor</th></tr></thead><tbody>${rowHtml}</tbody><tfoot><tr><td colspan="3">Total</td><td class="num">${money(totalD)}</td><td class="num">${money(totalC)}</td><td class="num">${money(balanceD)}</td><td class="num">${money(balanceC)}</td></tr></tfoot></table>`+
+      `<p class="footer-note">O balancete mostra todas as contas do plano reduzido, mesmo sem movimento. A linha “Certidão permanente” é uma regularização de apresentação: quando a certidão indica capital social e ainda não existe saldo na conta 51/511, a app apresenta crédito em 511 e débito provisório em 261 (capital por realizar), sem assumir que o capital entrou em banco.</p>`;
+    renderTrialToolbar(coverage);
+  };
+
+  function reportedBalanceSections(){
+    const balances=reportingBalances(calculateClosingBalances());
+    const by=(prefixes,kind)=>rounded(balances.filter(row=>prefixes.some(prefix=>accountDigits(row.code)===String(prefix)||accountDigits(row.code).startsWith(String(prefix))))
+      .reduce((sum,row)=>sum+(kind==='asset'?Number(row.balanceDebit||0):Number(row.balanceCredit||0)),0));
+    const dr=drData(calculateBalances());
+    const assetNonCurrent=[
+      {label:'Ativos fixos tangíveis',value:by(['43'],'asset')},{label:'Propriedades de investimento',value:by(['42'],'asset')},
+      {label:'Goodwill',value:by(['441'],'asset')},{label:'Ativos intangíveis',value:by(['44'],'asset')},{label:'Ativos biológicos',value:by(['45'],'asset')},
+      {label:'Participações financeiras — método da equivalência patrimonial',value:by(['411','412','413'],'asset')},{label:'Acionistas / sócios',value:by(['47'],'asset')},
+      {label:'Outros investimentos financeiros',value:by(['41','46'],'asset')},{label:'Ativos por impostos diferidos',value:by(['48'],'asset')},{label:'Outras contas a receber',value:by(['49'],'asset')}
+    ];
+    const assetCurrent=[
+      {label:'Inventários',value:by(['31','32','33','34','35','36','38','39'],'asset')},{label:'Clientes',value:by(['21'],'asset')},
+      {label:'Adiantamentos a fornecedores',value:by(['37'],'asset')},{label:'Estado e outros entes públicos',value:by(['24'],'asset')},{label:'Acionistas / sócios',value:by(['26'],'asset')},
+      {label:'Outras contas a receber',value:by(['27','28'],'asset')},{label:'Diferimentos',value:0},{label:'Ativos financeiros detidos para negociação',value:0},
+      {label:'Outros ativos financeiros',value:0},{label:'Ativos não correntes detidos para venda',value:0},{label:'Caixa e depósitos bancários',value:by(['11','12'],'asset')}
+    ];
+    const equity=[
+      {label:'Capital realizado',value:by(['51'],'liability')},{label:'Ações (quotas) próprias',value:by(['52'],'liability')},{label:'Outros instrumentos de capital próprio',value:by(['53'],'liability')},
+      {label:'Prémios de emissão',value:by(['54'],'liability')},{label:'Reservas legais',value:by(['551'],'liability')},{label:'Outras reservas',value:rounded(by(['55'],'liability')-by(['551'],'liability'))},
+      {label:'Resultados transitados',value:by(['56'],'liability')},{label:'Ajustamentos em ativos financeiros',value:by(['57'],'liability')},{label:'Excedentes de revalorização',value:by(['58'],'liability')},
+      {label:'Outras variações no capital próprio',value:by(['59'],'liability')},{label:'Resultado líquido do período',value:dr.result}
+    ];
+    const liabilityNonCurrent=[{label:'Provisões',value:by(['29'],'liability')},{label:'Financiamentos obtidos',value:by(['25'],'liability')},{label:'Responsabilidades por benefícios pós-emprego',value:0},{label:'Passivos por impostos diferidos',value:0},{label:'Outras contas a pagar',value:0}];
+    const liabilityCurrent=[{label:'Fornecedores',value:by(['22'],'liability')},{label:'Adiantamentos de clientes',value:0},{label:'Estado e outros entes públicos',value:by(['24'],'liability')},{label:'Acionistas / sócios',value:by(['26'],'liability')},{label:'Financiamentos obtidos',value:0},{label:'Outras contas a pagar',value:by(['23','27','28'],'liability')},{label:'Diferimentos',value:0},{label:'Passivos financeiros detidos para negociação',value:0},{label:'Outros passivos financeiros',value:0},{label:'Passivos não correntes detidos para venda',value:0}];
+    const sum=rows=>rounded(rows.reduce((s,row)=>s+Number(row.value||0),0));
+    return {assetNonCurrent,assetCurrent,equity,liabilityNonCurrent,liabilityCurrent,totalAssetNonCurrent:sum(assetNonCurrent),totalAssetCurrent:sum(assetCurrent),totalAssets:rounded(sum(assetNonCurrent)+sum(assetCurrent)),totalEquity:sum(equity),totalLiabilityNonCurrent:sum(liabilityNonCurrent),totalLiabilityCurrent:sum(liabilityCurrent),totalLiabilities:rounded(sum(liabilityNonCurrent)+sum(liabilityCurrent)),totalEquityLiabilities:rounded(sum(equity)+sum(liabilityNonCurrent)+sum(liabilityCurrent))};
+  }
+  window.renderBalance=function(){
+    const s=reportedBalanceSections();
+    const aligned=Math.abs(s.totalAssets-s.totalEquityLiabilities)<0.02;
+    const build=(title,rows,totalLabel,totalValue)=>`<div class="balance-side"><h5>${title}</h5><table class="report-table"><tbody>${rows.map(row=>`<tr><td>${escapeHTML(row.label)}</td><td class="num">${money(row.value)}</td></tr>`).join('')}<tr class="total"><td>${totalLabel}</td><td class="num">${money(totalValue)}</td></tr></tbody></table></div>`;
+    $('balanceReport').innerHTML=reportHeading('Balanço')+
+      `<div class="status-line no-print"><span class="dot ${aligned?'':'warn'}"></span>${aligned?'Ativo igual a capital próprio e passivo.':'Mapa ainda não está equilibrado; reveja o balancete de abertura/final e os documentos contabilizados.'}</div><div class="balance-columns"><div>${build('ATIVO NÃO CORRENTE',s.assetNonCurrent,'Total do ativo não corrente',s.totalAssetNonCurrent)}<div style="height:16px"></div>${build('ATIVO CORRENTE',s.assetCurrent,'Total do ativo corrente',s.totalAssetCurrent)}<table class="report-table" style="margin-top:12px"><tbody><tr class="grand-total"><td>Total do ativo</td><td class="num">${money(s.totalAssets)}</td></tr></tbody></table></div><div>${build('CAPITAL PRÓPRIO',s.equity,'Total do capital próprio',s.totalEquity)}<div style="height:16px"></div>${build('PASSIVO NÃO CORRENTE',s.liabilityNonCurrent,'Total do passivo não corrente',s.totalLiabilityNonCurrent)}<div style="height:16px"></div>${build('PASSIVO CORRENTE',s.liabilityCurrent,'Total do passivo corrente',s.totalLiabilityCurrent)}<table class="report-table" style="margin-top:12px"><tbody><tr class="total"><td>Total do passivo</td><td class="num">${money(s.totalLiabilities)}</td></tr><tr class="grand-total"><td>Total do capital próprio e passivo</td><td class="num">${money(s.totalEquityLiabilities)}</td></tr></tbody></table></div></div><div class="alert info" style="margin-top:14px"><b>Capital social da certidão:</b> quando não existe saldo 51/511 importado, o mapa apresenta automaticamente o capital em 511 e a contrapartida provisória em 261 — Sócios / capital por realizar. Assim, o balanço e o balancete ficam completos sem presumir uma entrada em banco.</div><p class="footer-note">A distinção entre corrente e não corrente é simplificada. Para reconciliação contabilística definitiva, importe o balancete de abertura ou final emitido pelo programa de contabilidade.</p>`;
+  };
+
+  // A página tem de ser atualizada já no carregamento inicial.
+  const originalRenderAll=window.renderAll;
+  window.renderAll=function(){ originalRenderAll(); renderTrialToolbar(periodCoverage()); };
+  setTimeout(()=>{try{renderAll();}catch(e){console.warn(e);}},0);
+})();
+
+
+
+/* === Importação de balancete PDF (SNC) como fonte contabilística === */
+(function(){
+  const rawCalculateBalances=window.calculateBalances;
+  const rawCalculateClosingBalances=window.calculateClosingBalances;
+  const rawRenderTrial=window.renderTrial;
+  const rawRenderIncome=window.renderIncome;
+  const rawRenderBalance=window.renderBalance;
+
+  const monthMap={janeiro:1,fevereiro:2,marco:3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12};
+  const safeRound=v=>typeof round==='function'?round(Number(v||0)):Math.round(Number(v||0)*100)/100;
+  const isoLastDay=(year,month)=>`${year}-${String(month).padStart(2,'0')}-${String(new Date(year,month,0).getDate()).padStart(2,'0')}`;
+  const moneyTokens=line=>{
+    const matches=String(line||'').match(/-?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d+,\d{2}/g)||[];
+    return matches.map(v=>parseAmount(v));
+  };
+  const stripMoney=line=>String(line||'').replace(/-?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d+,\d{2}/g,' ').replace(/\s+/g,' ').trim();
+
+  function balanceFromTokens(code,tokens){
+    const digits=accountDigits(code);
+    if(!tokens.length)return {debit:0,credit:0};
+    const last=tokens[tokens.length-1];
+    // Nas listagens CentralGest, as últimas 3 colunas são normalmente: acumulado a débito,
+    // acumulado a crédito e saldo. Quando só vem o saldo, a respetiva natureza define o lado.
+    if(tokens.length>=4){
+      const debit=Math.max(0,Number(tokens[tokens.length-3]||0));
+      const credit=Math.max(0,Number(tokens[tokens.length-2]||0));
+      if(debit||credit)return {debit:safeRound(debit),credit:safeRound(credit)};
+    }
+    const definition=typeof accountDefinition==='function'?accountDefinition(digits):{type:''};
+    const normalCredit=['liability','equity','revenue'].includes(definition?.type) || /^(2[2-6]|5|7|8)/.test(digits);
+    const absolute=Math.abs(Number(last||0));
+    if(last<0||normalCredit)return {debit:0,credit:safeRound(absolute)};
+    return {debit:safeRound(absolute),credit:0};
+  }
+
+  function parseBalancetePdf(text,fileName=''){
+    const clean=String(text||'').replace(/\u00a0/g,' ').replace(/\r/g,'');
+    const dateMatch=clean.match(/(?:de\s+)?(20\d{2})\s+(Janeiro|Fevereiro|Março|Marco|Abril|Maio|Junho|Julho|Agosto|Setembro|Outubro|Novembro|Dezembro)/i);
+    const yearMatch=clean.match(/20\d{2}/);
+    const year=Number(dateMatch?.[1]||yearMatch?.[0]||new Date().getFullYear());
+    const monthName=(dateMatch?.[2]||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    const month=monthMap[monthName]||12;
+    const asOf=isoLastDay(year,month);
+    const lines=clean.split('\n').map(line=>line.replace(/\s+/g,' ').trim()).filter(Boolean);
+    const rows=[]; let pending=null;
+    const finalize=()=>{
+      if(!pending)return;
+      const digits=accountDigits(pending.code);
+      if(!/^[1-8]\d{0,8}$/.test(digits)||digits==='2025010'){pending=null;return;}
+      const amounts=balanceFromTokens(digits,pending.tokens||[]);
+      const title=String(pending.name||'').replace(/^Conta\s*/i,'').replace(/\s+/g,' ').trim();
+      if(title && Math.abs(amounts.debit)+Math.abs(amounts.credit)>=0.004){
+        const definition=typeof accountDefinition==='function'?accountDefinition(digits):{name:title,type:'other'};
+        rows.push({code:digits,name:title||definition.name,type:definition.type||'other',debit:amounts.debit,credit:amounts.credit});
+      }
+      pending=null;
+    };
+    for(const line of lines){
+      if(/^(Página:|Data:|CentralGest|Totais:|Conta$|Designação|Período de:|Moeda:|Balancete de Contabilidade|\d{3} - )/i.test(line))continue;
+      const codeMatch=line.match(/^(\d{1,9})\s+(.+)$/);
+      if(codeMatch){
+        finalize();
+        pending={code:codeMatch[1],name:stripMoney(codeMatch[2]),tokens:moneyTokens(line)};
+        continue;
+      }
+      if(!pending)continue;
+      const numeric=moneyTokens(line);
+      if(numeric.length)pending.tokens.push(...numeric);
+      const words=stripMoney(line);
+      if(words)pending.name=`${pending.name} ${words}`.trim();
+    }
+    finalize();
+    // São usadas apenas as rubricas-folha: evita duplicar totais de classes, contas e subcontas.
+    const unique=[...new Map(rows.map(r=>[r.code,r])).values()];
+    const leaves=unique.filter(row=>!unique.some(other=>other.code!==row.code&&other.code.startsWith(row.code)));
+    const totalD=safeRound(leaves.reduce((sum,row)=>sum+row.debit,0));
+    const totalC=safeRound(leaves.reduce((sum,row)=>sum+row.credit,0));
+    return {sourceName:fileName,asOf,year,month,accounts:leaves,totalDebit:totalD,totalCredit:totalC,parsedAt:new Date().toISOString()};
+  }
+  function snapshot(){
+    const s=state?.importedTrialSnapshot;
+    return s&&Array.isArray(s.accounts)&&s.accounts.length?s:null;
+  }
+  function mergeBalances(primary,secondary){
+    const map=new Map();
+    const apply=(row)=>{
+      const code=String(row.code||'');if(!code)return;
+      const definition=typeof accountDefinition==='function'?accountDefinition(code):{};
+      const current=map.get(code)||{...definition,...row,code,name:row.name||definition.name||'Conta',type:row.type||definition.type||'other',debit:0,credit:0};
+      current.debit=safeRound(Number(current.debit||0)+Number(row.debit||0));
+      current.credit=safeRound(Number(current.credit||0)+Number(row.credit||0));
+      map.set(code,current);
+    };
+    (primary||[]).forEach(apply);(secondary||[]).forEach(apply);
+    return [...map.values()].map(row=>({...row,debit:safeRound(row.debit),credit:safeRound(row.credit),balanceDebit:safeRound(Math.max(0,row.debit-row.credit)),balanceCredit:safeRound(Math.max(0,row.credit-row.debit))})).filter(row=>row.debit||row.credit);
+  }
+  function snapshotBalances(){
+    const s=snapshot(); if(!s)return null;
+    const period=typeof getPeriod==='function'?getPeriod():{from:'',to:''};
+    const to=period.to||'9999-12-31', from=period.from||'0000-01-01';
+    // O balancete-fonte é acumulado até ao seu mês. Só substitui o cálculo quando a data final
+    // inclui esse fecho. Para meses anteriores conserva-se o cálculo por documentos.
+    if(to<s.asOf||from>s.asOf)return null;
+    const initial=s.accounts.map(row=>{
+      const definition=typeof accountDefinition==='function'?accountDefinition(row.code):{};
+      return {...definition,...row,name:row.name||definition.name,type:row.type||definition.type};
+    });
+    // A partir do mês seguinte, apenas os movimentos posteriores ao balancete são acrescentados.
+    const later=(state.entries||[]).filter(entry=>String(entry.date||'')>s.asOf&&String(entry.date||'')<=to);
+    return mergeBalances(initial,rawCalculateBalances(later));
+  }
+  window.calculateBalances=function(entries){
+    if(arguments.length)return rawCalculateBalances(entries);
+    return snapshotBalances()||rawCalculateBalances();
+  };
+  window.calculateClosingBalances=function(){
+    return snapshotBalances()||rawCalculateClosingBalances();
+  };
+
+  function sourceNote(target,kind){
+    const s=snapshot();if(!target||!s)return;
+    const old=target.querySelector('.trial-source-note');if(old)old.remove();
+    const note=document.createElement('div');note.className='alert success no-print trial-source-note';note.style.marginBottom='14px';
+    const account51=s.accounts.filter(row=>accountDigits(row.code).startsWith('51')).reduce((sum,row)=>sum+Math.max(0,row.credit-row.debit),0);
+    note.innerHTML=`<b>Fonte contabilística carregada:</b> ${escapeHTML(s.sourceName||'Balancete PDF')} · acumulado até ${fmtDate(s.asOf)} · ${s.accounts.length} contas-folha importadas. ${account51>0?`A conta <b>511 — Capital subscrito</b> foi reconhecida com saldo credor de <b>${money(account51)}</b>.`:''}`;
+    target.prepend(note);
+    if(kind==='balance'){
+      target.querySelectorAll('.alert.info').forEach(box=>{
+        if(/Capital social da certid/i.test(box.textContent||''))box.innerHTML=`<b>Capital social contabilístico:</b> a fonte Balancete PDF contém a conta 511 com saldo credor de ${money(account51)}. O valor já integra o Balancete e o Balanço; não é uma estimativa proveniente da certidão.`;
+      });
+    }
+  }
+  window.renderTrial=function(){rawRenderTrial();sourceNote($('trialReport'),'trial');};
+  window.renderIncome=function(){rawRenderIncome();sourceNote($('incomeReport'),'income');};
+  window.renderBalance=function(){rawRenderBalance();sourceNote($('balanceReport'),'balance');};
+
+  async function importTrialPdf(file){
+    if(!file)return;
+    try{
+      const btn=document.querySelector('label[for="balancePdfFile"]');if(btn){btn.textContent='A ler balancete PDF…';btn.style.pointerEvents='none';}
+      const text=await extractTextFromFile(file);
+      const parsed=parseBalancetePdf(text,file.name);
+      if(!parsed.accounts.length)throw new Error('Não foram encontradas contas SNC com saldos.');
+      state.importedTrialSnapshot=parsed;
+      const attachmentResult=await attachmentFromInput('balancePdfFile','Balancete','Fonte contabilística importada',parsed.asOf);
+      if(attachmentResult?.attachment){attachmentResult.attachment.analysis={...(attachmentResult.attachment.analysis||{}),status:'analyzed',isTrialBalance:true,asOf:parsed.asOf,accountCount:parsed.accounts.length,textPreview:String(text||'').slice(0,12000)};}
+      if(!state.profile.from||state.profile.from>parsed.asOf){state.profile.from=`${parsed.year}-01-01`;}
+      if(!state.profile.to||state.profile.to<parsed.asOf){state.profile.to=parsed.asOf;}
+      state.profile.year=parsed.year;
+      fillAccountSelects();renderAll();
+      toast(`Balancete PDF importado: ${parsed.accounts.length} contas-folha até ${fmtDate(parsed.asOf)}.`);
+    }catch(error){console.error(error);toast('Não foi possível ler o balancete PDF. Confirme que é um PDF digital com texto selecionável.');}
+    finally{const btn=document.querySelector('label[for="balancePdfFile"]');if(btn){btn.textContent='Carregar balancete PDF';btn.style.pointerEvents='';}}
+  }
+  const pdfInput=$('balancePdfFile');
+  if(pdfInput)pdfInput.addEventListener('change',async event=>{const file=event.target.files?.[0];await importTrialPdf(file);event.target.value='';});
+
+  // Persistência explícita: compatível com exportação/importação JSON já existente.
+  const baseExport=window.exportData;
+  if(typeof baseExport==='function')window.exportData=function(){return baseExport();};
+  setTimeout(()=>{try{renderAll();}catch(error){console.warn(error);}},0);
+})();
+
+
+/* === Correção definitiva: capital social da certidão em todos os mapas === */
+(function(){
+  const R=v=>typeof round==='function'?round(Number(v||0)):Math.round(Number(v||0)*100)/100;
+  const firstPositive=(...values)=>{
+    for(const value of values.flat(Infinity)){
+      const n=R(typeof parseAmount==='function'?parseAmount(value):Number(value));
+      if(n>0&&n<100000000000)return n;
+    }
+    return 0;
+  };
+  const getAttachmentText=att=>[
+    att?.analysis?.companyData?.shareCapital,
+    att?.analysis?.shareCapital,
+    att?.analysis?.textPreview,
+    att?.analysis?.text,
+    att?.note,
+    att?.name
+  ].filter(Boolean).join(' ');
+  function capitalRegex(text){
+    const flat=String(text||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();
+    const patterns=[
+      /capital\s+social(?:\s+(?:integralmente\s+)?(?:realizado|subscrito))?\s*(?:é|e|de|:|-)?\s*(?:EUR|EUROS?|€)?\s*([0-9][0-9.\s]*[,\.][0-9]{2}|[0-9][0-9.\s]*)/i,
+      /capital\s*(?:realizado|subscrito)?\s*(?:é|e|de|:|-)?\s*(?:EUR|EUROS?|€)?\s*([0-9][0-9.\s]*[,\.][0-9]{2}|[0-9][0-9.\s]*)/i,
+      /(?:EUR|EUROS?|€)\s*([0-9][0-9.\s]*[,\.][0-9]{2}|[0-9][0-9.\s]*)\s*(?:de\s+)?capital(?:\s+social)?/i,
+      /capital\s+social[\s\S]{0,90}?([0-9]{1,3}(?:[.\s]\d{3})*[,\.][0-9]{2})/i
+    ];
+    for(const re of patterns){
+      const m=flat.match(re); const v=m?firstPositive(m[1]):0; if(v>0)return v;
+    }
+    return 0;
+  }
+  function capitalFromTrialSnapshot(){
+    const accounts=state?.importedTrialSnapshot?.accounts||[];
+    return R(accounts.filter(row=>String(accountDigits(row.code||'')).startsWith('51'))
+      .reduce((sum,row)=>sum+Math.max(0,Number(row.credit||0)-Number(row.debit||0)),0));
+  }
+  function capitalEvidence(){
+    const attachmentValues=(state.attachments||[]).map(att=>{
+      const raw=firstPositive(att?.analysis?.companyData?.shareCapital,att?.analysis?.shareCapital);
+      return raw||capitalRegex(getAttachmentText(att));
+    });
+    const entryValues=(state.entries||[]).flatMap(entry=>{
+      const ref=`${entry?.description||''} ${entry?.ref||''} ${entry?.origin||''}`;
+      const lineCap=(entry?.lines||[]).filter(line=>String(accountDigits(line.account||'')).startsWith('51'))
+        .map(line=>Math.max(0,Number(line.credit||0)-Number(line.debit||0)));
+      return [/capital\s+(?:social|realizado|subscrito)/i.test(ref)?capitalRegex(ref):0,...lineCap];
+    });
+    return firstPositive(capitalFromTrialSnapshot(), state.profile?.shareCapital, attachmentValues, entryValues);
+  }
+  function applyCapitalEvidence({render=false}={}){
+    const capital=capitalEvidence();
+    if(capital>0){
+      const current=R(state.profile?.shareCapital||0);
+      if(Math.abs(current-capital)>0.004){ state.profile.shareCapital=capital; }
+      state.profile.shareCapitalSource=capitalFromTrialSnapshot()>0?'Balancete contabilístico (conta 51/511)':'Certidão permanente / documento da empresa';
+      const field=document.getElementById('companyShareCapital');
+      if(field)field.value=String(capital.toFixed(2)).replace('.',',');
+      return capital;
+    }
+    return 0;
+  }
+  async function readCapitalFromCompanyDocuments(){
+    let found=applyCapitalEvidence();
+    if(found>0)return found;
+    const candidates=(state.attachments||[]).filter(att=>{
+      const hay=`${att?.name||''} ${att?.category||''} ${att?.note||''} ${att?.analysis?.textPreview||''}`.toLowerCase();
+      return att?.category==='Dados da empresa'||att?.analysis?.companyCandidate||/certid[aã]o|permanente|registo comercial|pessoa coletiva|capital social/.test(hay);
+    });
+    for(const att of candidates){
+      try{
+        const file=await fileFromAttachment(att);
+        const extracted=await extractTextFromFile(file);
+        const value=capitalRegex(extracted);
+        if(value>0){
+          att.analysis={...(att.analysis||{}),status:'analyzed',companyCandidate:true,companyData:{...(att.analysis?.companyData||{}),shareCapital:value},shareCapital:value,textPreview:String(extracted||'').slice(0,12000),capitalDetectedAt:new Date().toISOString()};
+          state.profile.shareCapital=value;
+          state.profile.shareCapitalSource='Certidão permanente / documento da empresa';
+          found=value;
+          break;
+        }
+      }catch(error){ console.warn('Não foi possível ler capital social do documento',error); }
+    }
+    return found;
+  }
+  function updateCapitalStatus(){
+    const capital=applyCapitalEvidence();
+    const status=document.getElementById('companyDocStatus');
+    if(status&&capital>0){
+      const source=state.profile?.shareCapitalSource||'Documento da empresa';
+      status.className='alert success company-doc-status';
+      status.innerHTML=`<b>Capital social identificado:</b> ${money(capital)} · fonte: ${escapeHTML(source)}. O valor será usado na Visão geral, Balancete e Balanço.`;
+    }
+    return capital;
+  }
+  function ensureDashboardCapitalCard(){
+    const grid=document.getElementById('kpiGrid');if(!grid)return;
+    const capital=applyCapitalEvidence();
+    let card=document.getElementById('shareCapitalKpi');
+    if(!card){
+      card=document.createElement('div');card.id='shareCapitalKpi';card.className='card kpi';grid.appendChild(card);
+    }
+    card.innerHTML=`<div class="label">Capital social</div><div class="value">${capital>0?money(capital):'Por identificar'}</div><div class="sub">${capital>0?escapeHTML(state.profile?.shareCapitalSource||'Certidão / balancete'):'Anexe a certidão permanente ou use “Carregar dados da empresa”.'}</div>`;
+  }
+  function cleanseCapitalWarnings(){
+    document.querySelectorAll('#balanceReport .alert, #trialReport .alert').forEach(box=>{
+      const raw=String(box.textContent||'');
+      if(/Ainda não foi encontrado saldo credor na conta 51|capital social não apurado/i.test(raw))box.remove();
+    });
+  }
+  function injectCapitalSourceNote(){
+    const target=document.getElementById('balanceReport');if(!target)return;
+    target.querySelectorAll('.capital-social-final-note').forEach(n=>n.remove());
+    const capital=applyCapitalEvidence();
+    if(capital<=0)return;
+    const note=document.createElement('div');note.className='alert success no-print capital-social-final-note';note.style.marginBottom='14px';
+    note.innerHTML=`<b>Capital social integrado:</b> ${money(capital)} · origem: ${escapeHTML(state.profile?.shareCapitalSource||'Certidão permanente / balancete')}. Este valor preenche “Capital realizado” no Balanço e é refletido no Balancete Analítico.`;
+    target.prepend(note);
+  }
+  // Garante que os valores são aplicados antes dos mapas serem calculados e desenhados.
+  const priorRenderAll=window.renderAll;
+  window.renderAll=function(){
+    applyCapitalEvidence();
+    const out=priorRenderAll.apply(this,arguments);
+    ensureDashboardCapitalCard();updateCapitalStatus();cleanseCapitalWarnings();injectCapitalSourceNote();
+    return out;
+  };
+  const priorRenderBalance=window.renderBalance;
+  window.renderBalance=function(){
+    applyCapitalEvidence();
+    const out=priorRenderBalance.apply(this,arguments);
+    cleanseCapitalWarnings();injectCapitalSourceNote();
+    return out;
+  };
+  const priorRenderDashboard=window.renderDashboard;
+  window.renderDashboard=function(){
+    applyCapitalEvidence();
+    const out=priorRenderDashboard.apply(this,arguments);
+    ensureDashboardCapitalCard();updateCapitalStatus();
+    return out;
+  };
+  const priorRenderTrial=window.renderTrial;
+  window.renderTrial=function(){ applyCapitalEvidence(); return priorRenderTrial.apply(this,arguments); };
+  // Adiciona ação explícita na Visão geral, sem obrigar a preenchimento manual.
+  function addCapitalAction(){
+    const actions=document.querySelector('.company-load-actions');
+    if(!actions||document.getElementById('syncCapitalFromCertBtn'))return;
+    const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='syncCapitalFromCertBtn';btn.textContent='Sincronizar capital da certidão';
+    btn.addEventListener('click',async()=>{
+      btn.disabled=true;btn.textContent='A ler certidão…';
+      try{
+        const capital=await readCapitalFromCompanyDocuments();
+        if(capital>0){renderAll();toast(`Capital social atualizado: ${money(capital)}.`);}
+        else toast('Não foi encontrado um valor de capital social num documento de empresa. Selecione a certidão permanente em “Adicionar documentos”.');
+      }finally{btn.disabled=false;btn.textContent='Sincronizar capital da certidão';}
+    });
+    actions.appendChild(btn);
+  }
+  setTimeout(async()=>{
+    try{
+      addCapitalAction();
+      const before=applyCapitalEvidence();
+      if(before<=0){const capital=await readCapitalFromCompanyDocuments();if(capital>0)renderAll();}
+      else renderAll();
+    }catch(error){console.warn(error);}
+  },180);
+})();
+
+
+/* === Relatório de análise financeira nos documentos gerados === */
+(function(){
+  const AROUND=v=>typeof round==='function'?round(Number(v||0)):Math.round(Number(v||0)*100)/100;
+  const safeText=v=>typeof escapeHTML==='function'?escapeHTML(String(v??'')):String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const moneyText=v=>typeof money==='function'?money(AROUND(v)):`${AROUND(v).toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
+  const pct=v=>Number.isFinite(v)?`${(v*100).toLocaleString('pt-PT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'n.a.';
+  const code=v=>String(v??'').replace(/[^0-9]/g,'');
+  const periodText=()=>{
+    try{const p=getPeriod();return `${fmtDate(p.from)} a ${fmtDate(p.to)}`;}catch{return 'Período selecionado';}
+  };
+  const closingRows=()=>{
+    try{return (typeof calculateClosingBalances==='function'?calculateClosingBalances():calculateBalances())||[];}catch{return [];}
+  };
+  const periodRows=()=>{
+    try{return calculateBalances()||[];}catch{return [];}
+  };
+  const normalDebit=row=>AROUND(row?.balanceDebit??Math.max(0,Number(row?.debit||0)-Number(row?.credit||0)));
+  const normalCredit=row=>AROUND(row?.balanceCredit??Math.max(0,Number(row?.credit||0)-Number(row?.debit||0)));
+  const prefixValue=(rows,prefixes,side='debit')=>AROUND((rows||[]).filter(row=>prefixes.some(prefix=>{const c=code(row.code);const p=code(prefix);return c===p||c.startsWith(p);})).reduce((sum,row)=>sum+(side==='credit'?normalCredit(row):normalDebit(row)),0));
+  const titleCase=s=>String(s||'').replace(/\s+/g,' ').trim();
+  const analysisStyle=()=>{
+    if(document.getElementById('financialAnalysisStyle'))return;
+    const style=document.createElement('style');style.id='financialAnalysisStyle';
+    style.textContent=`
+      .financial-analysis-report{margin-top:22px;border:1px solid #c8d5e7;border-radius:14px;background:#fbfdff;overflow:hidden;page-break-inside:avoid}
+      .financial-analysis-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;background:#edf3fa;border-bottom:2px solid #0a1f72;padding:15px 18px}
+      .financial-analysis-head h3{margin:0;color:#0a1f72;font-size:16px;letter-spacing:-.2px}.financial-analysis-head p{margin:4px 0 0;color:#66738f;font-size:11px}
+      .financial-analysis-badge{display:inline-flex;align-items:center;border:1px solid #b5c8e4;border-radius:99px;background:#fff;color:#0a1f72;padding:5px 9px;font-size:10px;font-weight:850;white-space:nowrap}
+      .analysis-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:15px 18px 4px}
+      .analysis-metric{border:1px solid #d7e2f0;border-radius:10px;background:#fff;padding:10px 11px}.analysis-metric span{display:block;color:#66738f;font-size:9px;font-weight:850;letter-spacing:.35px;text-transform:uppercase}.analysis-metric b{display:block;margin-top:5px;color:#12245e;font-size:15px;line-height:1.15}
+      .analysis-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:12px;padding:12px 18px 16px}.analysis-panel{background:#fff;border:1px solid #dfe8f3;border-radius:10px;padding:12px 13px}.analysis-panel h4{margin:0 0 8px;color:#12245e;font-size:12px}.analysis-panel ul{margin:0;padding-left:18px;color:#314465;font-size:11px;line-height:1.5}.analysis-panel li{margin:4px 0}.analysis-panel .analysis-muted{color:#66738f}
+      .analysis-status{margin:0 18px 16px;padding:10px 12px;border-radius:9px;font-size:11px;line-height:1.45}.analysis-status.good{background:#ecfdf3;border:1px solid #abefc6;color:#067647}.analysis-status.warn{background:#fffaeb;border:1px solid #fedf89;color:#9a5b00}.analysis-status.info{background:#eff8ff;border:1px solid #b2ddff;color:#175cd3}
+      .analysis-disclaimer{padding:0 18px 16px;color:#66738f;font-size:9.5px;line-height:1.45}
+      @media(max-width:900px){.analysis-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.analysis-grid{grid-template-columns:1fr}}
+      @media print{.financial-analysis-report{box-shadow:none;border-color:#9bb1ce;break-inside:avoid}.financial-analysis-head{padding:10px 12px}.financial-analysis-head h3{font-size:13px}.analysis-metrics{padding:10px 12px 3px;gap:6px}.analysis-metric{padding:7px 8px}.analysis-metric b{font-size:11px}.analysis-grid{padding:8px 12px 10px;gap:7px}.analysis-panel{padding:8px}.analysis-panel h4{font-size:10px}.analysis-panel ul{font-size:9px}.analysis-status{margin:0 12px 10px;padding:8px;font-size:9px}.analysis-disclaimer{padding:0 12px 10px;font-size:8px}}
+    `;
+    document.head.appendChild(style);
+  };
+  const makeAnalysis=(kind,metrics=[],findings=[],attention=[],status={type:'info',text:''})=>{
+    const metricHtml=metrics.map(metric=>`<div class="analysis-metric"><span>${safeText(metric.label)}</span><b>${safeText(metric.value)}</b></div>`).join('');
+    const list=items=>items.length?items.map(item=>`<li>${item}</li>`).join(''):'<li class="analysis-muted">Sem observações adicionais a assinalar com os dados atualmente carregados.</li>';
+    return `<section class="financial-analysis-report" data-financial-analysis="${safeText(kind)}"><div class="financial-analysis-head"><div><h3>Relatório de análise financeira</h3><p>${safeText(periodText())} · anexo automático ao documento gerado</p></div><span class="financial-analysis-badge">ANÁLISE INTERNA</span></div><div class="analysis-metrics">${metricHtml}</div><div class="analysis-grid"><div class="analysis-panel"><h4>Leitura financeira</h4><ul>${list(findings)}</ul></div><div class="analysis-panel"><h4>Pontos de atenção</h4><ul>${list(attention)}</ul></div></div>${status.text?`<div class="analysis-status ${safeText(status.type||'info')}">${status.text}</div>`:''}<div class="analysis-disclaimer"><b>Nota metodológica:</b> esta análise é produzida automaticamente a partir dos movimentos, saldos e documentos importados na aplicação. Constitui apoio à gestão interna e não substitui a validação do Contabilista Certificado, a reconciliação bancária, nem os mapas contabilísticos e fiscais oficialmente encerrados.</div></section>`;
+  };
+  const addTo=(targetId,html)=>{
+    const target=document.getElementById(targetId);if(!target)return;
+    target.querySelectorAll('.financial-analysis-report').forEach(node=>node.remove());
+    target.insertAdjacentHTML('beforeend',html);
+  };
+  function trialAnalysis(){
+    const rows=periodRows();
+    const totalDebit=AROUND(rows.reduce((s,row)=>s+Number(row.debit||0),0));
+    const totalCredit=AROUND(rows.reduce((s,row)=>s+Number(row.credit||0),0));
+    const difference=Math.abs(totalDebit-totalCredit);
+    const active=rows.filter(row=>Math.abs(Number(row.debit||0))+Math.abs(Number(row.credit||0))>0.004).length;
+    const customers=prefixValue(rows,['21'],'debit');
+    const suppliers=prefixValue(rows,['22'],'credit');
+    const bank=prefixValue(rows,['11','12'],'debit');
+    const vatPayable=prefixValue(rows,['2433','2436'],'credit');
+    const capital=AROUND(state?.profile?.shareCapital||prefixValue(closingRows(),['51'],'credit'));
+    const periodCount=(typeof periodEntries==='function'?periodEntries():state?.entries||[]).length;
+    const findings=[
+      `Foram considerados <b>${active}</b> saldos com movimento e <b>${periodCount}</b> lançamento(s) no período analisado.`,
+      `Clientes apresentam saldo devedor de <b>${moneyText(customers)}</b>; fornecedores apresentam saldo credor de <b>${moneyText(suppliers)}</b>.`,
+      `Caixa e depósitos bancários reconhecidos no balancete: <b>${moneyText(bank)}</b>.`,
+      capital>0?`Capital social identificado: <b>${moneyText(capital)}</b> (${safeText(state?.profile?.shareCapitalSource||'fonte disponível na aplicação')}).`:'O capital social ainda não foi identificado por uma fonte contabilística ou documento da empresa.'
+    ];
+    const attention=[];
+    if(difference>0.01)attention.push(`Os movimentos não estão equilibrados: diferença entre débito e crédito de <b>${moneyText(difference)}</b>.`);
+    else attention.push(`O total de movimentos encontra-se equilibrado: <b>${moneyText(totalDebit)}</b> a débito e a crédito.`);
+    if(customers>0&&bank===0)attention.push('Existem saldos de clientes, mas não foram identificados movimentos/saldos de banco ou caixa no período; confirme cobranças e reconciliações bancárias.');
+    if(vatPayable>0)attention.push(`Existe IVA liquidado/a pagar de <b>${moneyText(vatPayable)}</b>; confirme apuramento, deduções e pagamentos declarados.`);
+    if(!rows.length)attention.push('Não existem movimentos no período selecionado.');
+    const status=difference<=0.01?{type:'good',text:'Balancete equilibrado para os movimentos atualmente carregados.'}:{type:'warn',text:'Balancete com diferença de conferência. Reveja lançamentos, saldos de abertura e importações de balancete.'};
+    return makeAnalysis('balancete',[
+      {label:'Contas com movimento',value:String(active)},
+      {label:'Movimentos a débito',value:moneyText(totalDebit)},
+      {label:'Movimentos a crédito',value:moneyText(totalCredit)},
+      {label:'Capital social',value:capital>0?moneyText(capital):'Não identificado'}
+    ],findings,attention,status);
+  }
+  function incomeAnalysis(){
+    let d={};try{d=drData(periodRows())||{};}catch{d={};}
+    const l=d.lines||{};
+    const sales=AROUND(l.salesServices??0), revenue=AROUND(d.revenue??sales), expenses=AROUND(d.expenses??0), ebitda=AROUND(d.ebitda??(revenue-expenses)), ebit=AROUND(d.ebit??ebitda), ebt=AROUND(d.ebt??ebit), result=AROUND(d.result??ebt);
+    const operatingCosts=[
+      ['Custo das mercadorias e matérias consumidas',AROUND(l.cogs??0)],
+      ['Fornecimentos e serviços externos',AROUND(l.externalSupplies??0)],
+      ['Gastos com o pessoal',AROUND(l.staffCosts??0)],
+      ['Depreciações e amortizações',AROUND(l.depreciation??0)],
+      ['Outros gastos e perdas',AROUND(l.otherExpenses??0)],
+      ['Gastos financeiros',AROUND(l.financialExpenses??0)]
+    ].filter(item=>Math.abs(item[1])>0.004).sort((a,b)=>b[1]-a[1]);
+    const findings=[
+      `Vendas e prestações de serviços reconhecidas nas contas 71/72: <b>${moneyText(sales)}</b>.`,
+      `Resultado EBITDA: <b>${moneyText(ebitda)}</b>${sales>0?` · margem EBITDA de <b>${pct(ebitda/sales)}</b>`:''}.`,
+      `Resultado líquido do período: <b>${moneyText(result)}</b>${sales>0?` · margem líquida de <b>${pct(result/sales)}</b>`:''}.`,
+      operatingCosts.length?`Principais rubricas de gasto: ${operatingCosts.slice(0,3).map(item=>`<b>${safeText(item[0])}</b> (${moneyText(item[1])})`).join('; ')}.`:'Não foram identificadas rubricas de gasto com saldo no período selecionado.'
+    ];
+    const attention=[];
+    if(sales<=0)attention.push('Não foram reconhecidas vendas ou prestações de serviços em 71/72 no período. Confirme o período selecionado e a importação do e-Fatura / mapa de vendas.');
+    if(sales>0&&expenses<=0.004)attention.push('Existem rendimentos, mas não existem gastos reconhecidos no período. A margem e o resultado podem estar sobreavaliados até serem importados fornecedores, salários, bancos, impostos e restantes gastos.');
+    if(result<0)attention.push('O período apresenta resultado líquido negativo; reveja estrutura de custos, preços, faturação e eventuais lançamentos extraordinários.');
+    if(AROUND(l.financialExpenses??0)>0)attention.push(`Foram identificados gastos financeiros de <b>${moneyText(l.financialExpenses)}</b>; confirme se juros, planos prestacionais e encargos estão integralmente reconhecidos.`);
+    if(!attention.length)attention.push('Não foram detetados alertas automáticos materiais com os dados atualmente registados.');
+    const status=result>=0?{type:'good',text:'O resultado líquido calculado é positivo. A leitura deve ser confirmada com o fecho contabilístico, inventários, amortizações e impostos sobre o rendimento.'}:{type:'warn',text:'O resultado líquido calculado é negativo. Analise as rubricas de gasto e a cobertura dos rendimentos registados.'};
+    return makeAnalysis('dr',[
+      {label:'Vendas e serviços 71/72',value:moneyText(sales)},
+      {label:'EBITDA',value:moneyText(ebitda)},
+      {label:'EBIT',value:moneyText(ebit)},
+      {label:'Resultado líquido',value:moneyText(result)}
+    ],findings,attention,status);
+  }
+  function balanceAnalysis(){
+    const rows=closingRows();
+    const assetRows=rows.filter(row=>normalDebit(row)>0 && !['expense','revenue'].includes(String(row.type||'')));
+    const liabilityRows=rows.filter(row=>normalCredit(row)>0 && code(row.code).startsWith('2'));
+    const equityRows=rows.filter(row=>normalCredit(row)>0 && code(row.code).startsWith('5'));
+    const totalAssets=AROUND(assetRows.reduce((s,row)=>s+normalDebit(row),0));
+    const totalLiabilities=AROUND(liabilityRows.reduce((s,row)=>s+normalCredit(row),0));
+    let d={};try{d=drData(periodRows())||{};}catch{d={};}
+    const periodResult=AROUND(d.result||0);
+    const capital=AROUND(state?.profile?.shareCapital||prefixValue(rows,['51'],'credit'));
+    const reserves=prefixValue(rows,['55','56','57','58','59'],'credit');
+    const equity=AROUND(capital+reserves+periodResult);
+    const currentAssets=AROUND(prefixValue(rows,['11','12','21','24','26','27','28','31','32','33','34','35','36','37','38','39'],'debit'));
+    const currentLiabilities=AROUND(prefixValue(rows,['22','23','24','26','27','28','29'],'credit'));
+    const liquidity=currentLiabilities>0?currentAssets/currentLiabilities:null;
+    const workingCapital=AROUND(currentAssets-currentLiabilities);
+    const autonomy=totalAssets>0?equity/totalAssets:null;
+    const debt=totalAssets>0?totalLiabilities/totalAssets:null;
+    const customers=prefixValue(rows,['21'],'debit');
+    const suppliers=prefixValue(rows,['22'],'credit');
+    const bank=prefixValue(rows,['11','12'],'debit');
+    const balanceRight=AROUND(equity+totalLiabilities);
+    const diff=Math.abs(totalAssets-balanceRight);
+    const findings=[
+      `Total do ativo apurado: <b>${moneyText(totalAssets)}</b>; capital próprio estimado: <b>${moneyText(equity)}</b>; passivo: <b>${moneyText(totalLiabilities)}</b>.`,
+      `Ativo corrente estimado em <b>${moneyText(currentAssets)}</b> e passivo corrente em <b>${moneyText(currentLiabilities)}</b>; fundo de maneio: <b>${moneyText(workingCapital)}</b>.`,
+      `Clientes: <b>${moneyText(customers)}</b> · fornecedores: <b>${moneyText(suppliers)}</b> · caixa e depósitos bancários: <b>${moneyText(bank)}</b>.`,
+      capital>0?`Capital social realizado apresentado: <b>${moneyText(capital)}</b> (${safeText(state?.profile?.shareCapitalSource||'fonte disponível na aplicação')}).`:'Capital social ainda não identificado para efeitos de apresentação no balanço.'
+    ];
+    const attention=[];
+    if(liquidity!==null)attention.push(`Liquidez corrente estimada: <b>${liquidity.toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})}</b>${liquidity<1?' — o ativo corrente é inferior ao passivo corrente e merece acompanhamento.':' — o ativo corrente cobre o passivo corrente com os saldos carregados.'}`);
+    else attention.push('Não existe passivo corrente registado para cálculo do indicador de liquidez.');
+    if(autonomy!==null)attention.push(`Autonomia financeira estimada: <b>${pct(autonomy)}</b>; endividamento: <b>${pct(debt)}</b>.`);
+    if(diff>0.02)attention.push(`O balanço não está conciliado nos valores carregados: diferença de <b>${moneyText(diff)}</b> entre ativo e capital próprio + passivo. Importe o balancete de abertura/final ou reveja a classificação de saldos.`);
+    else attention.push('O balanço apresenta igualdade entre ativo e capital próprio + passivo com os dados atualmente carregados.');
+    const status=diff<=0.02?{type:'good',text:'Balanço conciliado matematicamente com os saldos disponíveis.'}:{type:'warn',text:'Balanço ainda não conciliado. A análise deve ser lida como provisória até à importação do balancete final e reconciliação completa.'};
+    return makeAnalysis('balanco',[
+      {label:'Total do ativo',value:moneyText(totalAssets)},
+      {label:'Capital próprio',value:moneyText(equity)},
+      {label:'Liquidez corrente',value:liquidity===null?'n.a.':liquidity.toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})},
+      {label:'Autonomia financeira',value:autonomy===null?'n.a.':pct(autonomy)}
+    ],findings,attention,status);
+  }
+  function applyAnalyses(){
+    analysisStyle();
+    addTo('trialReport',trialAnalysis());
+    addTo('incomeReport',incomeAnalysis());
+    addTo('balanceReport',balanceAnalysis());
+  }
+  function addActions(){
+    const mappings=[
+      ['page-trial','trialAnalysisRefresh','Atualizar relatório de análise'],
+      ['page-income','incomeAnalysisRefresh','Atualizar relatório de análise'],
+      ['page-balance','balanceAnalysisRefresh','Atualizar relatório de análise']
+    ];
+    mappings.forEach(([pageId,id,label])=>{
+      const page=document.getElementById(pageId);if(!page||document.getElementById(id))return;
+      const intro=page.querySelector('.page-intro');if(!intro)return;
+      const actionBox=intro.querySelector('div:last-child')||intro;
+      const btn=document.createElement('button');btn.type='button';btn.id=id;btn.className='btn no-print';btn.textContent=label;
+      btn.addEventListener('click',()=>{try{renderAll();toast('Relatório de análise atualizado.');}catch(error){console.warn(error);}});
+      actionBox.insertBefore(btn,actionBox.firstChild);
+    });
+  }
+  const priorRenderAllForAnalysis=window.renderAll;
+  window.renderAll=function(){
+    const result=priorRenderAllForAnalysis.apply(this,arguments);
+    try{applyAnalyses();addActions();}catch(error){console.warn('Relatório de análise',error);}
+    return result;
+  };
+  const wrap=(name)=>{
+    const previous=window[name];if(typeof previous!=='function')return;
+    window[name]=function(){const result=previous.apply(this,arguments);try{applyAnalyses();}catch(error){console.warn(error);}return result;};
+  };
+  wrap('renderTrial');wrap('renderIncome');wrap('renderBalance');
+  setTimeout(()=>{try{analysisStyle();applyAnalyses();addActions();}catch(error){console.warn(error);}},260);
+})();
+
+
+
+/* === Capital social: apresentação conciliada e sem aviso incorreto === */
+(function(){
+  const R=v=>typeof round==='function'?round(Number(v||0)):Math.round(Number(v||0)*100)/100;
+  const baseBalanceSections=window.balanceSections;
+
+  function recalcSections(s){
+    const sum=rows=>R((rows||[]).reduce((n,row)=>n+Number(row.value||0),0));
+    s.totalAssetNonCurrent=sum(s.assetNonCurrent);
+    s.totalAssetCurrent=sum(s.assetCurrent);
+    s.totalAssets=R(s.totalAssetNonCurrent+s.totalAssetCurrent);
+    s.totalEquity=sum(s.equity);
+    s.totalLiabilityNonCurrent=sum(s.liabilityNonCurrent);
+    s.totalLiabilityCurrent=sum(s.liabilityCurrent);
+    s.totalLiabilities=R(s.totalLiabilityNonCurrent+s.totalLiabilityCurrent);
+    s.totalEquityLiabilities=R(s.totalEquity+s.totalLiabilities);
+    return s;
+  }
+
+  function applyCapitalPresentation(s){
+    const declared=R(s.declaredCapital || state.profile?.shareCapital || 0);
+    const posted=R(s.capitalLedger || 0);
+    const missing=R(Math.max(0,declared-posted));
+    const equityLine=(s.equity||[]).find(row=>row.label==='Capital realizado');
+    if(equityLine) equityLine.value=R(Math.max(Number(equityLine.value||0),declared));
+
+    // A certidão confirma a existência do capital, mas não demonstra entrada em banco.
+    // Sem saldo 51/511 importado, a contrapartida é apresentada no ativo como capital subscrito por realizar.
+    if(missing>0.004){
+      let support=(s.assetCurrent||[]).find(row=>row.__capitalSupport);
+      if(!support){
+        support={label:'Acionistas / sócios — capital subscrito por realizar',value:0,__capitalSupport:true};
+        const index=(s.assetCurrent||[]).findIndex(row=>row.label==='Acionistas / sócios');
+        (s.assetCurrent||[]).splice(index>=0?index+1:0,0,support);
+      }
+      support.value=missing;
+    }
+    s.capitalPresentation={declared,posted,missing,source:state.profile?.shareCapitalSource||'Certidão permanente / documento da empresa'};
+    return recalcSections(s);
+  }
+
+  window.balanceSections=function(balances){
+    return applyCapitalPresentation(baseBalanceSections.call(this,balances));
+  };
+
+  function build(title,rows,totalLabel,totalValue){
+    const lines=(rows||[]).map(row=>`<tr><td>${escapeHTML(row.label)}</td><td class="num">${money(row.value)}</td></tr>`).join('');
+    return `<div class="balance-side"><h5>${escapeHTML(title)}</h5><table class="report-table"><tbody>${lines}<tr class="total"><td>${escapeHTML(totalLabel)}</td><td class="num">${money(totalValue)}</td></tr></tbody></table></div>`;
+  }
+
+  window.renderBalance=function(){
+    const balances=typeof calculateClosingBalances==='function'?calculateClosingBalances():calculateBalances();
+    const s=window.balanceSections(balances);
+    const aligned=Math.abs(Number(s.totalAssets||0)-Number(s.totalEquityLiabilities||0))<0.02;
+    const cap=s.capitalPresentation||{};
+    const capitalText=cap.missing>0.004
+      ? `<div class="alert info" style="margin-top:14px"><b>Capital social integrado no mapa:</b> ${money(cap.declared)} · origem: ${escapeHTML(cap.source)}. Para manter a igualdade do balanço, a contrapartida é apresentada em <b>Acionistas / sócios — capital subscrito por realizar</b>. Este tratamento não presume que o capital entrou em banco; deve ser confirmado pelo balancete de abertura/final ou comprovativo de realização.</div>`
+      : `<div class="alert success" style="margin-top:14px"><b>Capital social conciliado:</b> ${money(cap.declared||cap.posted||0)} · origem: ${escapeHTML(cap.source||'Balancete contabilístico')}. A conta 51/511 encontra-se refletida nos saldos importados.</div>`;
+
+    $('balanceReport').innerHTML=reportHeading('Balanço')+
+      `<div class="status-line no-print"><span class="dot ${aligned?'':'warn'}"></span>${aligned?'Ativo igual a capital próprio e passivo.':'Mapa com diferença de conciliação; reveja saldos contabilísticos importados.'}</div>
+      <div class="balance-columns">
+        <div>
+          ${build('ATIVO NÃO CORRENTE',s.assetNonCurrent,'Total do ativo não corrente',s.totalAssetNonCurrent)}
+          <div style="height:16px"></div>
+          ${build('ATIVO CORRENTE',s.assetCurrent,'Total do ativo corrente',s.totalAssetCurrent)}
+          <table class="report-table" style="margin-top:12px"><tbody><tr class="grand-total"><td>Total do ativo</td><td class="num">${money(s.totalAssets)}</td></tr></tbody></table>
+        </div>
+        <div>
+          ${build('CAPITAL PRÓPRIO',s.equity,'Total do capital próprio',s.totalEquity)}
+          <div style="height:16px"></div>
+          ${build('PASSIVO NÃO CORRENTE',s.liabilityNonCurrent,'Total do passivo não corrente',s.totalLiabilityNonCurrent)}
+          <div style="height:16px"></div>
+          ${build('PASSIVO CORRENTE',s.liabilityCurrent,'Total do passivo corrente',s.totalLiabilityCurrent)}
+          <table class="report-table" style="margin-top:12px"><tbody><tr class="total"><td>Total do passivo</td><td class="num">${money(s.totalLiabilities)}</td></tr><tr class="grand-total"><td>Total do capital próprio e passivo</td><td class="num">${money(s.totalEquityLiabilities)}</td></tr></tbody></table>
+        </div>
+      </div>${capitalText}<p class="footer-note">O Balanço é apurado a partir dos saldos disponíveis até à data final selecionada. A regularização de apresentação do capital social é identificada separadamente até existir suporte no balancete contabilístico.</p>`;
+  };
+
+  function appendReconciledBalanceAnalysis(){
+    const target=document.getElementById('balanceReport');if(!target)return;
+    target.querySelectorAll('.financial-analysis-report').forEach(node=>node.remove());
+    const s=window.balanceSections(typeof calculateClosingBalances==='function'?calculateClosingBalances():calculateBalances());
+    const cap=s.capitalPresentation||{};
+    const difference=R(Math.abs(Number(s.totalAssets||0)-Number(s.totalEquityLiabilities||0)));
+    const liquidity=Number(s.totalLiabilityCurrent||0)>0?Number(s.totalAssetCurrent||0)/Number(s.totalLiabilityCurrent||0):null;
+    const note=cap.missing>0.004
+      ? `Capital social de <b>${money(cap.declared)}</b> apresentado a partir de ${escapeHTML(cap.source)}. A contrapartida de <b>${money(cap.missing)}</b> está incluída em “Acionistas / sócios — capital subscrito por realizar”, sem presumir entrada em banco.`
+      : `Capital social de <b>${money(cap.declared||cap.posted||0)}</b> refletido nos saldos contabilísticos importados.`;
+    target.insertAdjacentHTML('beforeend',`<section class="financial-analysis-report" data-financial-analysis="balanco"><div class="financial-analysis-head"><div><h3>Relatório de análise financeira</h3><p>${escapeHTML(typeof getPeriod==='function'?`${fmtDate(getPeriod().from)} a ${fmtDate(getPeriod().to)}`:'Período selecionado')} · anexo automático ao documento gerado</p></div><span class="financial-analysis-badge">ANÁLISE INTERNA</span></div><div class="analysis-metrics"><div class="analysis-metric"><span>Total do ativo</span><b>${money(s.totalAssets)}</b></div><div class="analysis-metric"><span>Capital próprio</span><b>${money(s.totalEquity)}</b></div><div class="analysis-metric"><span>Passivo</span><b>${money(s.totalLiabilities)}</b></div><div class="analysis-metric"><span>Liquidez corrente</span><b>${liquidity===null?'n.a.':liquidity.toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div></div><div class="analysis-grid"><div class="analysis-panel"><h4>Leitura financeira</h4><ul><li>Ativo total de <b>${money(s.totalAssets)}</b> e capital próprio de <b>${money(s.totalEquity)}</b>.</li><li>${note}</li></ul></div><div class="analysis-panel"><h4>Pontos de atenção</h4><ul><li>O capital deve ser confirmado pelo balancete de abertura/final ou comprovativo de realização, para substituir a regularização de apresentação.</li></ul></div></div><div class="analysis-status ${difference<=0.02?'info':'warn'}">${difference<=0.02?'Balanço apresentado com igualdade matemática usando os saldos e a regularização identificada do capital social.':'Mantém-se uma diferença de conciliação de '+money(difference)+'. Reveja os saldos contabilísticos importados.'}</div><div class="analysis-disclaimer"><b>Nota metodológica:</b> relatório automático de apoio à gestão interna; não substitui o fecho e validação pelo Contabilista Certificado.</div></section>`);
+  }
+
+  function patchBalanceAnalysis(){
+    const target=document.getElementById('balanceReport');if(!target)return;
+    const s=window.balanceSections(typeof calculateClosingBalances==='function'?calculateClosingBalances():calculateBalances());
+    const cap=s.capitalPresentation||{};
+    const analysis=target.querySelector('.financial-analysis-report');
+    if(!analysis)return;
+    const status=analysis.querySelector('.analysis-status');
+    if(status){
+      status.className='analysis-status info';
+      status.innerHTML=cap.missing>0.004
+        ? `Balanço apresentado com igualdade matemática através da regularização de <b>${money(cap.missing)}</b> em “Acionistas / sócios — capital subscrito por realizar”, suportada pela certidão. Confirme a realização do capital no balancete de abertura/final.`
+        : 'Balanço conciliado matematicamente com os saldos disponíveis.';
+    }
+    const panels=analysis.querySelectorAll('.analysis-panel ul');
+    if(panels[1]&&cap.missing>0.004&&!analysis.querySelector('.capital-support-analysis')){
+      const li=document.createElement('li');li.className='capital-support-analysis';
+      li.innerHTML=`O capital social de <b>${money(cap.declared)}</b> provém de ${escapeHTML(cap.source)}. A respetiva contrapartida foi apresentada no ativo como capital subscrito por realizar, sem assumir entrada em banco.`;
+      panels[1].prepend(li);
+    }
+  }
+
+  const priorRenderAll=window.renderAll;
+  window.renderAll=function(){
+    const out=priorRenderAll.apply(this,arguments);
+    // O relatório de análise é criado pelo render anterior; atualiza-se depois.
+    try{window.renderBalance();}catch(error){console.warn('Balanço capital social',error);}
+    try{appendReconciledBalanceAnalysis();patchBalanceAnalysis();}catch(error){console.warn('Análise capital social',error);}
+    return out;
+  };
+
+  setTimeout(()=>{try{renderAll();}catch(error){console.warn(error);}},360);
+})();
+
+</script>
+
 </body>
 </html>
